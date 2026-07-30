@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SM Consultores - Gestión de Llamados</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    .section { @apply bg-white p-6 rounded-lg shadow-md mb-6; }
+    .input { @apply w-full border border-gray-300 rounded px-3 py-2 mt-1 focus:outline-none focus:ring-2 focus:ring-blue-500; }
+    .label { @apply block text-sm font-semibold text-gray-700 mt-4; }
+    .btn { @apply bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition; }
+    .btn-secondary { @apply bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600 transition; }
+    .btn-success { @apply bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 transition; }
+    table { @apply w-full text-sm; }
+    th, td { @apply border px-3 py-2 text-left; }
+    th { @apply bg-gray-100; }
+  </style>
+</head>
+<body class="bg-gray-100 min-h-screen p-4">
+  <div class="max-w-5xl mx-auto">
+    <h1 class="text-3xl font-bold text-center mb-8 text-gray-800">SM Consultores - Gestión de Llamados</h1>
+
+    <!-- EMPRESA -->
+    <div class="section">
+      <h2 class="text-xl font-bold mb-4 text-blue-700">1. Datos de la Empresa</h2>
+      <label class="label">Empresa existente</label>
+      <select id="empresaSelect" class="input" onchange="toggleNuevaEmpresa()">
+        <option value="">-- Crear nueva empresa --</option>
+      </select>
+
+      <div id="nuevaEmpresaBox" class="mt-4">
+        <label class="label">Nombre de la Empresa</label>
+        <input type="text" id="empresaNombre" class="input" placeholder="Ej: ACME S.A.">
+        <label class="label">Rubro / Detalle (opcional)</label>
+        <input type="text" id="empresaRubro" class="input" placeholder="Ej: Tecnología">
+      </div>
+    </div>
+
+    <!-- LLAMADO -->
+    <div class="section">
+      <h2 class="text-xl font-bold mb-4 text-blue-700">2. Datos del Llamado</h2>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <label class="label">Nombre del Llamado</label>
+          <input type="text" id="llamadoNombre" class="input" placeholder="Ej: Búsqueda de Desarrollador">
+        </div>
+        <div>
+          <label class="label">Fecha</label>
+          <input type="date" id="llamadoFecha" class="input">
+        </div>
+        <div>
+          <label class="label">Cargo</label>
+          <input type="text" id="llamadoCargo" class="input" placeholder="Ej: Desarrollador Full Stack">
+        </div>
+        <div>
+          <label class="label">Área</label>
+          <input type="text" id="llamadoArea" class="input" placeholder="Ej: Sistemas">
+        </div>
+      </div>
+    </div>
+
+    <!-- CSV -->
+    <div class="section">
+      <h2 class="text-xl font-bold mb-4 text-blue-700">3. Carga de Postulantes (CSV)</h2>
+      <input type="file" id="csvFile" accept=".csv" class="input mb-4" onchange="handleCSV()">
+      
+      <div id="csvPreviewBox" class="hidden">
+        <p class="text-sm text-gray-600 mb-2">Mapea las columnas del CSV a los campos:</p>
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4" id="columnMap"></div>
+        
+        <div class="flex gap-2 mb-4">
+          <input type="text" id="newFieldName" class="input w-auto" placeholder="Nuevo campo extra">
+          <button onclick="addExtraField()" class="btn-secondary">Agregar campo</button>
+        </div>
+        <div id="extraFields" class="flex flex-wrap gap-2 mb-4"></div>
+
+        <div class="overflow-x-auto max-h-64">
+          <table>
+            <thead id="previewHead"></thead>
+            <tbody id="previewBody"></tbody>
+          </table>
+        </div>
+        <p class="text-xs text-gray-500 mt-2" id="previewCount"></p>
+      </div>
+    </div>
+
+    <!-- ACCIONES -->
+    <div class="flex justify-center gap-4 mb-12">
+      <button onclick="guardarTodo()" class="btn-success text-lg px-8 py-3 font-bold">💾 Guardar Todo en GitHub</button>
+    </div>
+
+    <div id="log" class="text-sm font-mono bg-black text-green-400 p-4 rounded hidden"></div>
+  </div>
+
+<script>
+// ========== CONFIG ==========
+const API = '/.netlify/functions';
+
+// ========== ESTADO ==========
+let tablas = {
+  empresa: [],
+  llamado: [],
+  postulante: [],
+  'llamado-empresa': [],
+  'llamado-postulante': []
+};
+let csvData = [];
+let csvHeaders = [];
+let columnMapping = {}; // { nombre: 'col1', apellido: 'col2', ... }
+let extraFields = [];
+
+// ========== INICIO ==========
+document.addEventListener('DOMContentLoaded', () => {
+  cargarTablas();
+  document.getElementById('llamadoFecha').valueAsDate = new Date();
+});
+
+function log(msg) {
+  const el = document.getElementById('log');
+  el.classList.remove('hidden');
+  el.innerHTML += `> ${msg}<br>`;
+  el.scrollTop = el.scrollHeight;
+}
+
+// ========== CARGAR TABLAS ==========
+async function cargarTablas() {
+  log('Cargando tablas desde GitHub...');
+  for (const t of Object.keys(tablas)) {
+    try {
+      const res = await fetch(`${API}/get-table?table=${t}`);
+      tablas[t] = await res.json();
+    } catch (e) {
+      tablas[t] = [];
+    }
+  }
+  renderEmpresas();
+  log('Tablas cargadas.');
+}
+
+function renderEmpresas() {
+  const sel = document.getElementById('empresaSelect');
+  sel.innerHTML = '<option value="">-- Crear nueva empresa --</option>';
+  tablas.empresa.forEach((e, i) => {
+    sel.innerHTML += `<option value="${i}">${e.nombre}</option>`;
+  });
+}
+
+function toggleNuevaEmpresa() {
+  const sel = document.getElementById('empresaSelect').value;
+  document.getElementById('nuevaEmpresaBox').style.display = sel === '' ? 'block' : 'none';
+}
+
+// ========== CSV ==========
+function handleCSV() {
+  const file = document.getElementById('csvFile').files[0];
+  if (!file) return;
+
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    const text = e.target.result;
+    parseCSV(text);
+  };
+  reader.readAsText(file);
+}
+
+function parseCSV(text) {
+  const lines = text.split(/\r?\n/).filter(l => l.trim());
+  if (lines.length < 2) return alert('CSV vacío o inválido');
+
+  // Detectar separador
+  const sep = lines[0].includes(';') ? ';' : ',';
+
+  csvHeaders = lines[0].split(sep).map(h => h.trim().replace(/^"|"$/g, ''));
+  csvData = lines.slice(1).map(line => {
+    const vals = line.split(sep).map(v => v.trim().replace(/^"|"$/g, ''));
+    const row = {};
+    csvHeaders.forEach((h, i) => row[h] = vals[i] || '');
+    return row;
+  });
+
+  // Mapeo automático básico
+  columnMapping = {};
+  const campos = ['nombre', 'apellido', 'email', 'telefono'];
+  campos.forEach(campo => {
+    const match = csvHeaders.find(h => h.toLowerCase().includes(campo));
+    if (match) columnMapping[campo] = match;
+  });
+
+  renderColumnMap();
+  renderPreview();
+  document.getElementById('csvPreviewBox').classList.remove('hidden');
+  log(`CSV cargado: ${csvData.length} postulantes.`);
+}
+
+function renderColumnMap() {
+  const box = document.getElementById('columnMap');
+  const campos = ['nombre', 'apellido', 'email', 'telefono'];
+  box.innerHTML = campos.map(campo => `
+    <div>
+      <label class="block text-xs font-bold text-gray-600">${campo.toUpperCase()}</label>
+      <select id="map-${campo}" class="input text-sm" onchange="columnMapping['${campo}']=this.value; renderPreview()">
+        <option value="">-- Ignorar --</option>
+        ${csvHeaders.map(h => `<option value="${h}" ${columnMapping[campo]===h?'selected':''}>${h}</option>`).join('')}
+      </select>
+    </div>
+  `).join('');
+}
+
+function addExtraField() {
+  const name = document.getElementById('newFieldName').value.trim();
+  if (!name || extraFields.includes(name)) return;
+  extraFields.push(name);
+  document.getElementById('newFieldName').value = '';
+  renderExtraFields();
+}
+
+function renderExtraFields() {
+  const box = document.getElementById('extraFields');
+  box.innerHTML = extraFields.map(f => `
+    <div class="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm flex items-center gap-2">
+      ${f}
+      <button onclick="removeExtraField('${f}')" class="text-blue-600 font-bold">×</button>
+    </div>
+  `).join('');
+}
+
+function removeExtraField(f) {
+  extraFields = extraFields.filter(x => x !== f);
+  renderExtraFields();
+}
+
+function renderPreview() {
+  const thead = document.getElementById('previewHead');
+  const tbody = document.getElementById('previewBody');
+  const displayCols = ['nombre', 'apellido', 'email', 'telefono', ...extraFields].filter(c => columnMapping[c] || extraFields.includes(c));
+
+  thead.innerHTML = '<tr>' + displayCols.map(c => `<th>${c}</th>`).join('') + '</tr>';
+  tbody.innerHTML = csvData.slice(0, 5).map(row => {
+    return '<tr>' + displayCols.map(c => {
+      const val = columnMapping[c] ? row[columnMapping[c]] : (extraFields.includes(c) ? row[c] || '' : '');
+      return `<td>${val}</td>`;
+    }).join('') + '</tr>';
+  }).join('');
+
+  document.getElementById('previewCount').textContent = `Mostrando 5 de ${csvData.length} registros. Columnas detectadas: ${csvHeaders.join(', ')}`;
+}
+
+// ========== GUARDAR ==========
+async function guardarTodo() {
+  log('Iniciando guardado...');
+
+  // 1. Validar
+  const llamadoNombre = document.getElementById('llamadoNombre').value.trim();
+  const llamadoFecha = document.getElementById('llamadoFecha').value;
+  const llamadoCargo = document.getElementById('llamadoCargo').value.trim();
+  const llamadoArea = document.getElementById('llamadoArea').value.trim();
+  
+  if (!llamadoNombre || !llamadoFecha || !llamadoCargo || !llamadoArea) {
+    return alert('Completa todos los datos del llamado.');
+  }
+  if (csvData.length === 0) {
+    return alert('Carga un archivo CSV primero.');
+  }
+
+  // 2. Empresa
+  let empresaId;
+  const selIdx = document.getElementById('empresaSelect').value;
+  
+  if (selIdx === '') {
+    const nombre = document.getElementById('empresaNombre').value.trim();
+    if (!nombre) return alert('Ingresa el nombre de la empresa.');
+    empresaId = tablas.empresa.length > 0 ? Math.max(...tablas.empresa.map(e => e.id)) + 1 : 1;
+    tablas.empresa.push({
+      id: empresaId,
+      nombre,
+      rubro: document.getElementById('empresaRubro').value.trim()
+    });
+    log(`Nueva empresa creada ID=${empresaId}`);
+  } else {
+    empresaId = tablas.empresa[selIdx].id;
+    log(`Usando empresa existente ID=${empresaId}`);
+  }
+
+  // 3. Llamado
+  const llamadoId = tablas.llamado.length > 0 ? Math.max(...tablas.llamado.map(l => l.id)) + 1 : 1;
+  tablas.llamado.push({
+    id: llamadoId,
+    nombre_llamado: llamadoNombre,
+    fecha: llamadoFecha,
+    cargo: llamadoCargo,
+    area: llamadoArea,
+    empresa_id: empresaId
+  });
+  log(`Llamado creado ID=${llamadoId}`);
+
+  // 4. Relación llamado-empresa
+  tablas['llamado-empresa'].push({ llamado_id: llamadoId, empresa_id: empresaId });
+
+  // 5. Postulantes
+  let postulanteIdBase = tablas.postulante.length > 0 ? Math.max(...tablas.postulante.map(p => p.id)) + 1 : 1;
+  
+  csvData.forEach((row, idx) => {
+    const postulanteId = postulanteIdBase + idx;
+    const postulante = {
+      id: postulanteId,
+      nombre: columnMapping.nombre ? row[columnMapping.nombre] : '',
+      apellido: columnMapping.apellido ? row[columnMapping.apellido] : '',
+      email: columnMapping.email ? row[columnMapping.email] : '',
+      telefono: columnMapping.telefono ? row[columnMapping.telefono] : ''
+    };
+    
+    // Campos extra
+    extraFields.forEach(f => {
+      if (row[f] !== undefined) postulante[f] = row[f];
+    });
+
+    tablas.postulante.push(postulante);
+    tablas['llamado-postulante'].push({ llamado_id: llamadoId, postulante_id: postulanteId });
+  });
+  log(`${csvData.length} postulantes procesados.`);
+
+  // 6. Subir todo a GitHub
+  log('Subiendo tablas a GitHub...');
+  const tablesToUpload = ['empresa', 'llamado', 'postulante', 'llamado-empresa', 'llamado-postulante'];
+  
+  for (const t of tablesToUpload) {
+    log(`Subiendo ${t}.json...`);
+    const res = await fetch(`${API}/update-table`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ table: t, data: tablas[t] })
+    });
+    if (!res.ok) {
+      const err = await res.json();
+      log(`ERROR en ${t}: ${JSON.stringify(err)}`);
+      return alert(`Error guardando ${t}.json. Revisa el log.`);
+    }
+  }
+
+  log('✅ ¡Todo guardado exitosamente en GitHub!');
+  alert('Datos guardados correctamente en el repositorio.');
+  
+  // Reset parcial
+  csvData = [];
+  document.getElementById('csvFile').value = '';
+  document.getElementById('csvPreviewBox').classList.add('hidden');
+  document.getElementById('llamadoNombre').value = '';
+  document.getElementById('llamadoCargo').value = '';
+  document.getElementById('llamadoArea').value = '';
+  
+  // Recargar tablas
+  await cargarTablas();
+}
+</script>
+</body>
+</html>
