@@ -9,12 +9,20 @@
     .section { @apply bg-white p-6 rounded-lg shadow-md mb-6; }
     .input { @apply w-full border border-gray-300 rounded px-3 py-2 mt-1 focus:outline-none focus:ring-2 focus:ring-blue-500; }
     .label { @apply block text-sm font-semibold text-gray-700 mt-4; }
-    .btn { @apply bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition; }
-    .btn-secondary { @apply bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600 transition; }
-    .btn-success { @apply bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 transition; }
+    .btn { @apply bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition cursor-pointer; }
+    .btn-secondary { @apply bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600 transition cursor-pointer; }
+    .btn-success { @apply bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 transition cursor-pointer; }
+    .btn-warning { @apply bg-yellow-500 text-white px-4 py-2 rounded hover:bg-yellow-600 transition cursor-pointer; }
+    .btn-danger { @apply bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600 transition cursor-pointer; }
     table { @apply w-full text-sm; }
     th, td { @apply border px-3 py-2 text-left; }
     th { @apply bg-gray-100; }
+    .modal-overlay { @apply fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4; }
+    .modal-box { @apply bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto p-6; }
+    .hidden { display: none !important; }
+    .compare-box { @apply border rounded p-3 bg-gray-50; }
+    .compare-old { @apply border-l-4 border-yellow-500; }
+    .compare-new { @apply border-l-4 border-blue-500; }
   </style>
 </head>
 <body class="bg-gray-100 min-h-screen p-4">
@@ -28,11 +36,12 @@
       <select id="empresaSelect" class="input" onchange="toggleNuevaEmpresa()">
         <option value="">-- Crear nueva empresa --</option>
       </select>
+      <p id="empresaWarning" class="text-red-600 text-sm mt-2 hidden">⚠️ Esta empresa ya existe. Se usará la existente.</p>
 
       <div id="nuevaEmpresaBox" class="mt-4">
-        <label class="label">Nombre de la Empresa</label>
-        <input type="text" id="empresaNombre" class="input" placeholder="Ej: ACME S.A.">
-        <label class="label">Rubro / Detalle (opcional)</label>
+        <label class="label">Nombre de la Empresa *</label>
+        <input type="text" id="empresaNombre" class="input" placeholder="Ej: ACME S.A." onblur="checkEmpresaDuplicada()">
+        <label class="label">Rubro / Detalle</label>
         <input type="text" id="empresaRubro" class="input" placeholder="Ej: Tecnología">
       </div>
     </div>
@@ -40,22 +49,45 @@
     <!-- LLAMADO -->
     <div class="section">
       <h2 class="text-xl font-bold mb-4 text-blue-700">2. Datos del Llamado</h2>
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div>
-          <label class="label">Nombre del Llamado</label>
-          <input type="text" id="llamadoNombre" class="input" placeholder="Ej: Búsqueda de Desarrollador">
-        </div>
-        <div>
-          <label class="label">Fecha</label>
-          <input type="date" id="llamadoFecha" class="input">
-        </div>
-        <div>
-          <label class="label">Cargo</label>
-          <input type="text" id="llamadoCargo" class="input" placeholder="Ej: Desarrollador Full Stack">
-        </div>
-        <div>
-          <label class="label">Área</label>
-          <input type="text" id="llamadoArea" class="input" placeholder="Ej: Sistemas">
+      
+      <label class="label">¿Es un llamado nuevo o complementario?</label>
+      <div class="flex gap-4 mt-2 mb-4">
+        <label class="flex items-center gap-2 cursor-pointer">
+          <input type="radio" name="tipoLlamado" value="nuevo" checked onchange="toggleTipoLlamado()">
+          <span>Nuevo llamado</span>
+        </label>
+        <label class="flex items-center gap-2 cursor-pointer">
+          <input type="radio" name="tipoLlamado" value="complementario" onchange="toggleTipoLlamado()">
+          <span>Agregar a llamado existente</span>
+        </label>
+      </div>
+
+      <div id="llamadoExistenteBox" class="hidden mb-4">
+        <label class="label">Seleccionar llamado existente</label>
+        <select id="llamadoSelect" class="input" onchange="cargarDatosLlamado()">
+          <option value="">-- Selecciona un llamado --</option>
+        </select>
+        <div id="llamadoInfo" class="mt-2 text-sm text-gray-600 hidden"></div>
+      </div>
+
+      <div id="llamadoNuevoBox">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label class="label">Nombre del Llamado *</label>
+            <input type="text" id="llamadoNombre" class="input" placeholder="Ej: Búsqueda de Desarrollador">
+          </div>
+          <div>
+            <label class="label">Fecha *</label>
+            <input type="date" id="llamadoFecha" class="input">
+          </div>
+          <div>
+            <label class="label">Cargo *</label>
+            <input type="text" id="llamadoCargo" class="input" placeholder="Ej: Desarrollador Full Stack">
+          </div>
+          <div>
+            <label class="label">Área *</label>
+            <input type="text" id="llamadoArea" class="input" placeholder="Ej: Sistemas">
+          </div>
         </div>
       </div>
     </div>
@@ -93,6 +125,39 @@
     <div id="log" class="text-sm font-mono bg-black text-green-400 p-4 rounded hidden"></div>
   </div>
 
+  <!-- MODAL DUPLICADOS -->
+  <div id="modalDuplicados" class="modal-overlay hidden">
+    <div class="modal-box">
+      <h2 class="text-2xl font-bold mb-4 text-red-600">⚠️ Postulante duplicado detectado</h2>
+      <p class="mb-4 text-gray-700">El postulante <strong id="dupNombre"></strong> ya existe en la base de datos. ¿Qué deseas hacer?</p>
+      
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+        <div class="compare-box compare-old">
+          <h3 class="font-bold text-yellow-700 mb-2">📁 REGISTRO EXISTENTE</h3>
+          <pre id="dupOldData" class="text-xs overflow-x-auto"></pre>
+        </div>
+        <div class="compare-box compare-new">
+          <h3 class="font-bold text-blue-700 mb-2">📥 DATOS NUEVOS (CSV)</h3>
+          <pre id="dupNewData" class="text-xs overflow-x-auto"></pre>
+        </div>
+      </div>
+
+      <div class="flex justify-center gap-3 flex-wrap">
+        <button onclick="resolverDuplicado('ignorar')" class="btn-secondary">🚫 Ignorar (mantener existente)</button>
+        <button onclick="resolverDuplicado('actualizar')" class="btn-warning">🔄 Actualizar con datos nuevos</button>
+        <button onclick="resolverDuplicado('nuevo')" class="btn">➕ Crear como nuevo registro</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL PROCESANDO -->
+  <div id="modalProcesando" class="modal-overlay hidden">
+    <div class="modal-box text-center">
+      <h2 class="text-xl font-bold mb-2">⏳ Procesando duplicados...</h2>
+      <p class="text-gray-600">Revisando <span id="procTotal">0</span> postulantes. Pendientes: <span id="procPendientes">0</span></p>
+    </div>
+  </div>
+
 <script>
 // ========== CONFIG ==========
 const API = '/.netlify/functions';
@@ -107,8 +172,11 @@ let tablas = {
 };
 let csvData = [];
 let csvHeaders = [];
-let columnMapping = {}; // { nombre: 'col1', apellido: 'col2', ... }
+let columnMapping = {};
 let extraFields = [];
+let duplicadosPendientes = [];
+let duplicadoActual = null;
+let callbackDespuesDuplicados = null;
 
 // ========== INICIO ==========
 document.addEventListener('DOMContentLoaded', () => {
@@ -135,42 +203,84 @@ async function cargarTablas() {
     }
   }
   renderEmpresas();
-  log('Tablas cargadas.');
+  renderLlamados();
+  log('Tablas cargadas. Empresas: ' + tablas.empresa.length + ', Llamados: ' + tablas.llamado.length + ', Postulantes: ' + tablas.postulante.length);
 }
 
 function renderEmpresas() {
   const sel = document.getElementById('empresaSelect');
   sel.innerHTML = '<option value="">-- Crear nueva empresa --</option>';
   tablas.empresa.forEach((e, i) => {
-    sel.innerHTML += `<option value="${i}">${e.nombre}</option>`;
+    sel.innerHTML += `<option value="${i}">${e.nombre}${e.rubro ? ' ('+e.rubro+')' : ''}</option>`;
+  });
+}
+
+function renderLlamados() {
+  const sel = document.getElementById('llamadoSelect');
+  sel.innerHTML = '<option value="">-- Selecciona un llamado --</option>';
+  tablas.llamado.forEach((l, i) => {
+    const emp = tablas.empresa.find(e => e.id === l.empresa_id);
+    sel.innerHTML += `<option value="${i}">#${l.id} - ${l.nombre_llamado} | ${l.cargo} | ${emp ? emp.nombre : 'Sin empresa'}</option>`;
   });
 }
 
 function toggleNuevaEmpresa() {
   const sel = document.getElementById('empresaSelect').value;
   document.getElementById('nuevaEmpresaBox').style.display = sel === '' ? 'block' : 'none';
+  document.getElementById('empresaWarning').classList.add('hidden');
+}
+
+function checkEmpresaDuplicada() {
+  const nombre = document.getElementById('empresaNombre').value.trim().toLowerCase();
+  if (!nombre) return;
+  const existe = tablas.empresa.find(e => e.nombre.toLowerCase() === nombre);
+  const warning = document.getElementById('empresaWarning');
+  if (existe) {
+    warning.classList.remove('hidden');
+    warning.textContent = `⚠️ La empresa "${existe.nombre}" ya existe (ID: ${existe.id}). Se usará la existente al guardar.`;
+  } else {
+    warning.classList.add('hidden');
+  }
+}
+
+function toggleTipoLlamado() {
+  const tipo = document.querySelector('input[name="tipoLlamado"]:checked').value;
+  document.getElementById('llamadoExistenteBox').classList.toggle('hidden', tipo === 'nuevo');
+  document.getElementById('llamadoNuevoBox').classList.toggle('hidden', tipo === 'complementario');
+}
+
+function cargarDatosLlamado() {
+  const idx = document.getElementById('llamadoSelect').value;
+  const info = document.getElementById('llamadoInfo');
+  if (idx === '') {
+    info.classList.add('hidden');
+    return;
+  }
+  const l = tablas.llamado[idx];
+  const emp = tablas.empresa.find(e => e.id === l.empresa_id);
+  info.innerHTML = `
+    <strong>Llamado:</strong> ${l.nombre_llamado}<br>
+    <strong>Fecha:</strong> ${l.fecha}<br>
+    <strong>Cargo:</strong> ${l.cargo}<br>
+    <strong>Área:</strong> ${l.area}<br>
+    <strong>Empresa:</strong> ${emp ? emp.nombre : 'N/A'}
+  `;
+  info.classList.remove('hidden');
 }
 
 // ========== CSV ==========
 function handleCSV() {
   const file = document.getElementById('csvFile').files[0];
   if (!file) return;
-
   const reader = new FileReader();
-  reader.onload = (e) => {
-    const text = e.target.result;
-    parseCSV(text);
-  };
+  reader.onload = (e) => parseCSV(e.target.result);
   reader.readAsText(file);
 }
 
 function parseCSV(text) {
   const lines = text.split(/\r?\n/).filter(l => l.trim());
   if (lines.length < 2) return alert('CSV vacío o inválido');
-
-  // Detectar separador
   const sep = lines[0].includes(';') ? ';' : ',';
-
   csvHeaders = lines[0].split(sep).map(h => h.trim().replace(/^"|"$/g, ''));
   csvData = lines.slice(1).map(line => {
     const vals = line.split(sep).map(v => v.trim().replace(/^"|"$/g, ''));
@@ -179,7 +289,6 @@ function parseCSV(text) {
     return row;
   });
 
-  // Mapeo automático básico
   columnMapping = {};
   const campos = ['nombre', 'apellido', 'email', 'telefono'];
   campos.forEach(campo => {
@@ -234,7 +343,6 @@ function renderPreview() {
   const thead = document.getElementById('previewHead');
   const tbody = document.getElementById('previewBody');
   const displayCols = ['nombre', 'apellido', 'email', 'telefono', ...extraFields].filter(c => columnMapping[c] || extraFields.includes(c));
-
   thead.innerHTML = '<tr>' + displayCols.map(c => `<th>${c}</th>`).join('') + '</tr>';
   tbody.innerHTML = csvData.slice(0, 5).map(row => {
     return '<tr>' + displayCols.map(c => {
@@ -242,86 +350,223 @@ function renderPreview() {
       return `<td>${val}</td>`;
     }).join('') + '</tr>';
   }).join('');
+  document.getElementById('previewCount').textContent = `Mostrando 5 de ${csvData.length} registros. Columnas: ${csvHeaders.join(', ')}`;
+}
 
-  document.getElementById('previewCount').textContent = `Mostrando 5 de ${csvData.length} registros. Columnas detectadas: ${csvHeaders.join(', ')}`;
+// ========== DUPLICADOS ==========
+function normalizarTexto(t) {
+  return (t || '').toLowerCase().trim().replace(/\s+/g, ' ');
+}
+
+function buscarPostulanteDuplicado(nombre, apellido) {
+  const n = normalizarTexto(nombre);
+  const a = normalizarTexto(apellido);
+  return tablas.postulante.find(p => normalizarTexto(p.nombre) === n && normalizarTexto(p.apellido) === a);
+}
+
+function mostrarModalDuplicado(nuevoRow, existente, callback) {
+  callbackDespuesDuplicados = callback;
+  duplicadoActual = { nuevoRow, existente };
+  document.getElementById('dupNombre').textContent = `${existente.nombre} ${existente.apellido}`;
+  document.getElementById('dupOldData').textContent = JSON.stringify(existente, null, 2);
+  
+  const nuevoDatos = construirPostulanteObj(nuevoRow, -1);
+  document.getElementById('dupNewData').textContent = JSON.stringify(nuevoDatos, null, 2);
+  
+  document.getElementById('modalDuplicados').classList.remove('hidden');
+}
+
+function resolverDuplicado(accion) {
+  document.getElementById('modalDuplicados').classList.add('hidden');
+  const { nuevoRow, existente } = duplicadoActual;
+  
+  if (accion === 'ignorar') {
+    log(`Duplicado ignorado: ${existente.nombre} ${existente.apellido}`);
+  } else if (accion === 'actualizar') {
+    // Actualizar el postulante existente con datos nuevos
+    const actualizado = construirPostulanteObj(nuevoRow, existente.id);
+    const idx = tablas.postulante.findIndex(p => p.id === existente.id);
+    if (idx !== -1) tablas.postulante[idx] = actualizado;
+    log(`Postulante actualizado: ${actualizado.nombre} ${actualizado.apellido} (ID: ${actualizado.id})`);
+  } else if (accion === 'nuevo') {
+    // Forzar crear nuevo
+    const nuevo = construirPostulanteObj(nuevoRow, generarId('postulante'));
+    tablas.postulante.push(nuevo);
+    log(`Postulante creado como nuevo (forzado): ${nuevo.nombre} ${nuevo.apellido} (ID: ${nuevo.id})`);
+  }
+  
+  procesarSiguienteDuplicado();
+}
+
+function generarId(tabla) {
+  const arr = tablas[tabla];
+  return arr.length > 0 ? Math.max(...arr.map(x => x.id)) + 1 : 1;
+}
+
+function construirPostulanteObj(row, id) {
+  const obj = {
+    id,
+    nombre: columnMapping.nombre ? row[columnMapping.nombre] : '',
+    apellido: columnMapping.apellido ? row[columnMapping.apellido] : '',
+    email: columnMapping.email ? row[columnMapping.email] : '',
+    telefono: columnMapping.telefono ? row[columnMapping.telefono] : ''
+  };
+  extraFields.forEach(f => {
+    if (row[f] !== undefined) obj[f] = row[f];
+  });
+  return obj;
 }
 
 // ========== GUARDAR ==========
 async function guardarTodo() {
   log('Iniciando guardado...');
 
-  // 1. Validar
-  const llamadoNombre = document.getElementById('llamadoNombre').value.trim();
-  const llamadoFecha = document.getElementById('llamadoFecha').value;
-  const llamadoCargo = document.getElementById('llamadoCargo').value.trim();
-  const llamadoArea = document.getElementById('llamadoArea').value.trim();
-  
-  if (!llamadoNombre || !llamadoFecha || !llamadoCargo || !llamadoArea) {
-    return alert('Completa todos los datos del llamado.');
+  // Validar llamado
+  const tipo = document.querySelector('input[name="tipoLlamado"]:checked').value;
+  let llamadoId, empresaId;
+
+  if (tipo === 'nuevo') {
+    const llamadoNombre = document.getElementById('llamadoNombre').value.trim();
+    const llamadoFecha = document.getElementById('llamadoFecha').value;
+    const llamadoCargo = document.getElementById('llamadoCargo').value.trim();
+    const llamadoArea = document.getElementById('llamadoArea').value.trim();
+    if (!llamadoNombre || !llamadoFecha || !llamadoCargo || !llamadoArea) {
+      return alert('Completa todos los datos del llamado.');
+    }
+
+    // Empresa
+    const selIdx = document.getElementById('empresaSelect').value;
+    if (selIdx === '') {
+      const nombre = document.getElementById('empresaNombre').value.trim();
+      if (!nombre) return alert('Ingresa el nombre de la empresa.');
+      
+      // Verificar duplicado
+      const existe = tablas.empresa.find(e => e.nombre.toLowerCase() === nombre.toLowerCase());
+      if (existe) {
+        empresaId = existe.id;
+        log(`Empresa existente usada: ${existe.nombre} (ID: ${empresaId})`);
+      } else {
+        empresaId = generarId('empresa');
+        tablas.empresa.push({
+          id: empresaId,
+          nombre,
+          rubro: document.getElementById('empresaRubro').value.trim()
+        });
+        log(`Nueva empresa creada ID=${empresaId}`);
+      }
+    } else {
+      empresaId = tablas.empresa[selIdx].id;
+      log(`Empresa existente seleccionada ID=${empresaId}`);
+    }
+
+    // Crear llamado nuevo
+    llamadoId = generarId('llamado');
+    tablas.llamado.push({
+      id: llamadoId,
+      nombre_llamado: llamadoNombre,
+      fecha: llamadoFecha,
+      cargo: llamadoCargo,
+      area: llamadoArea,
+      empresa_id: empresaId
+    });
+    tablas['llamado-empresa'].push({ llamado_id: llamadoId, empresa_id: empresaId });
+    log(`Llamado creado ID=${llamadoId}`);
+
+  } else {
+    // Complementario
+    const selLlamado = document.getElementById('llamadoSelect').value;
+    if (selLlamado === '') return alert('Selecciona un llamado existente.');
+    const llamado = tablas.llamado[selLlamado];
+    llamadoId = llamado.id;
+    empresaId = llamado.empresa_id;
+    log(`Agregando a llamado existente ID=${llamadoId}`);
   }
+
   if (csvData.length === 0) {
     return alert('Carga un archivo CSV primero.');
   }
 
-  // 2. Empresa
-  let empresaId;
-  const selIdx = document.getElementById('empresaSelect').value;
+  // Procesar postulantes con manejo de duplicados
+  await procesarPostulantes(llamadoId);
+}
+
+async function procesarPostulantes(llamadoId) {
+  duplicadosPendientes = [];
   
-  if (selIdx === '') {
-    const nombre = document.getElementById('empresaNombre').value.trim();
-    if (!nombre) return alert('Ingresa el nombre de la empresa.');
-    empresaId = tablas.empresa.length > 0 ? Math.max(...tablas.empresa.map(e => e.id)) + 1 : 1;
-    tablas.empresa.push({
-      id: empresaId,
-      nombre,
-      rubro: document.getElementById('empresaRubro').value.trim()
-    });
-    log(`Nueva empresa creada ID=${empresaId}`);
-  } else {
-    empresaId = tablas.empresa[selIdx].id;
-    log(`Usando empresa existente ID=${empresaId}`);
+  // Primera pasada: detectar duplicados
+  for (const row of csvData) {
+    const nombre = columnMapping.nombre ? row[columnMapping.nombre] : '';
+    const apellido = columnMapping.apellido ? row[columnMapping.apellido] : '';
+    const existente = buscarPostulanteDuplicado(nombre, apellido);
+    
+    if (existente) {
+      duplicadosPendientes.push({ row, existente, llamadoId });
+    } else {
+      // Crear directo
+      const nuevo = construirPostulanteObj(row, generarId('postulante'));
+      tablas.postulante.push(nuevo);
+      tablas['llamado-postulante'].push({ llamado_id: llamadoId, postulante_id: nuevo.id });
+    }
   }
 
-  // 3. Llamado
-  const llamadoId = tablas.llamado.length > 0 ? Math.max(...tablas.llamado.map(l => l.id)) + 1 : 1;
-  tablas.llamado.push({
-    id: llamadoId,
-    nombre_llamado: llamadoNombre,
-    fecha: llamadoFecha,
-    cargo: llamadoCargo,
-    area: llamadoArea,
-    empresa_id: empresaId
-  });
-  log(`Llamado creado ID=${llamadoId}`);
+  if (duplicadosPendientes.length > 0) {
+    log(`Detectados ${duplicadosPendientes.length} postulantes duplicados. Resolviendo...`);
+    document.getElementById('procTotal').textContent = duplicadosPendientes.length;
+    document.getElementById('procPendientes').textContent = duplicadosPendientes.length;
+    document.getElementById('modalProcesando').classList.remove('hidden');
+    procesarSiguienteDuplicado();
+  } else {
+    log('Sin duplicados. Subiendo a GitHub...');
+    await subirATodoGitHub();
+  }
+}
 
-  // 4. Relación llamado-empresa
-  tablas['llamado-empresa'].push({ llamado_id: llamadoId, empresa_id: empresaId });
-
-  // 5. Postulantes
-  let postulanteIdBase = tablas.postulante.length > 0 ? Math.max(...tablas.postulante.map(p => p.id)) + 1 : 1;
+function procesarSiguienteDuplicado() {
+  const pend = duplicadosPendientes.filter(d => !d.resuelto);
+  document.getElementById('procPendientes').textContent = pend.length;
   
-  csvData.forEach((row, idx) => {
-    const postulanteId = postulanteIdBase + idx;
-    const postulante = {
-      id: postulanteId,
-      nombre: columnMapping.nombre ? row[columnMapping.nombre] : '',
-      apellido: columnMapping.apellido ? row[columnMapping.apellido] : '',
-      email: columnMapping.email ? row[columnMapping.email] : '',
-      telefono: columnMapping.telefono ? row[columnMapping.telefono] : ''
-    };
+  if (pend.length === 0) {
+    document.getElementById('modalProcesando').classList.add('hidden');
+    log('Todos los duplicados resueltos. Subiendo a GitHub...');
+    subirATodoGitHub();
+    return;
+  }
+
+  const actual = pend[0];
+  actual.resuelto = true;
+  
+  // Verificar si ya fue creado como nuevo en el modal anterior
+  mostrarModalDuplicado(actual.row, actual.existente, () => {
+    // Si no se actualizó ni ignoró, y eligió "nuevo", ya se creó en resolverDuplicado
+    // Pero necesitamos la relación
+    const { row, existente, llamadoId } = actual;
+    // Buscar si se creó uno nuevo
+    const nombre = columnMapping.nombre ? row[columnMapping.nombre] : '';
+    const apellido = columnMapping.apellido ? row[columnMapping.apellido] : '';
     
-    // Campos extra
-    extraFields.forEach(f => {
-      if (row[f] !== undefined) postulante[f] = row[f];
-    });
-
-    tablas.postulante.push(postulante);
-    tablas['llamado-postulante'].push({ llamado_id: llamadoId, postulante_id: postulanteId });
+    // La relación se maneja según la acción:
+    // - ignorar: ya existe, verificar si ya tiene relación
+    // - actualizar: usa el mismo ID, verificar relación
+    // - nuevo: se creó nuevo, verificar relación
+    
+    const yaTieneRelacion = tablas['llamado-postulante'].some(
+      r => r.llamado_id === llamadoId && (
+        r.postulante_id === existente.id || 
+        tablas.postulante.some(p => p.id === r.postulante_id && normalizarTexto(p.nombre) === normalizarTexto(nombre) && normalizarTexto(p.apellido) === normalizarTexto(apellido))
+      )
+    );
+    
+    if (!yaTieneRelacion) {
+      // Buscar el ID correcto
+      const post = tablas.postulante.find(p => normalizarTexto(p.nombre) === normalizarTexto(nombre) && normalizarTexto(p.apellido) === normalizarTexto(apellido));
+      if (post) {
+        tablas['llamado-postulante'].push({ llamado_id: llamadoId, postulante_id: post.id });
+      }
+    }
   });
-  log(`${csvData.length} postulantes procesados.`);
+}
 
-  // 6. Subir todo a GitHub
-  log('Subiendo tablas a GitHub...');
+async function subirATodoGitHub() {
   const tablesToUpload = ['empresa', 'llamado', 'postulante', 'llamado-empresa', 'llamado-postulante'];
   
   for (const t of tablesToUpload) {
@@ -341,15 +586,19 @@ async function guardarTodo() {
   log('✅ ¡Todo guardado exitosamente en GitHub!');
   alert('Datos guardados correctamente en el repositorio.');
   
-  // Reset parcial
+  // Reset
   csvData = [];
   document.getElementById('csvFile').value = '';
   document.getElementById('csvPreviewBox').classList.add('hidden');
+  document.querySelector('input[name="tipoLlamado"][value="nuevo"]').checked = true;
+  toggleTipoLlamado();
   document.getElementById('llamadoNombre').value = '';
   document.getElementById('llamadoCargo').value = '';
   document.getElementById('llamadoArea').value = '';
+  document.getElementById('empresaNombre').value = '';
+  document.getElementById('empresaRubro').value = '';
+  document.getElementById('empresaWarning').classList.add('hidden');
   
-  // Recargar tablas
   await cargarTablas();
 }
 </script>
