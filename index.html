@@ -61,6 +61,17 @@
               <tbody id="tablaEmpresas"></tbody>
             </table>
           </div>
+          <div class="flex justify-center items-center gap-2 mt-2 text-sm">
+            <button onclick="cambiarPag('empresa', -1)" class="btn btn-sm btn-secondary">← Ant</button>
+            <span id="infoPagEmpresa" class="text-gray font-bold">Página 1 de 1</span>
+            <button onclick="cambiarPag('empresa', 1)" class="btn btn-sm btn-secondary">Sig →</button>
+            <select id="tamPagEmpresa" onchange="cambiarTamPag('empresa')" class="input" style="width:auto;padding:0.4rem;">
+              <option value="10">10</option>
+              <option value="25" selected>25</option>
+              <option value="50">50</option>
+              <option value="100">100</option>
+            </select>
+          </div>
         </div>
       </div>
     </div>
@@ -101,6 +112,17 @@
               <thead><tr><th>ID</th><th>Nombre</th><th>Cargo</th><th>Área</th><th>Empresa</th><th>Fecha</th><th>Post.</th><th></th></tr></thead>
               <tbody id="tablaLlamados"></tbody>
             </table>
+          </div>
+          <div class="flex justify-center items-center gap-2 mt-2 text-sm">
+            <button onclick="cambiarPag('llamado', -1)" class="btn btn-sm btn-secondary">← Ant</button>
+            <span id="infoPagLlamado" class="text-gray font-bold">Página 1 de 1</span>
+            <button onclick="cambiarPag('llamado', 1)" class="btn btn-sm btn-secondary">Sig →</button>
+            <select id="tamPagLlamado" onchange="cambiarTamPag('llamado')" class="input" style="width:auto;padding:0.4rem;">
+              <option value="10">10</option>
+              <option value="25" selected>25</option>
+              <option value="50">50</option>
+              <option value="100">100</option>
+            </select>
           </div>
         </div>
       </div>
@@ -149,6 +171,17 @@
             <thead><tr><th>ID</th><th>Nombre</th><th>Apellido</th><th>Email</th><th>Teléfono</th><th>Llamados</th><th></th></tr></thead>
             <tbody id="tablaPostulantes"></tbody>
           </table>
+        </div>
+        <div class="flex justify-center items-center gap-2 mt-2 text-sm">
+          <button onclick="cambiarPag('postulante', -1)" class="btn btn-sm btn-secondary">← Ant</button>
+          <span id="infoPagPostulante" class="text-gray font-bold">Página 1 de 1</span>
+          <button onclick="cambiarPag('postulante', 1)" class="btn btn-sm btn-secondary">Sig →</button>
+          <select id="tamPagPostulante" onchange="cambiarTamPag('postulante')" class="input" style="width:auto;padding:0.4rem;">
+            <option value="10">10</option>
+            <option value="25" selected>25</option>
+            <option value="50">50</option>
+            <option value="100">100</option>
+          </select>
         </div>
       </div>
     </div>

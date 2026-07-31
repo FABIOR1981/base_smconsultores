@@ -5,6 +5,45 @@ let csvData = [], csvHeaders = [], columnMapping = {}, extraFields = [];
 let duplicadosLista = [];
 let llamadoIdParaPostulantes = null;
 
+// ========== PAGINACIÓN GLOBAL ==========
+const paginacion = {
+  empresa:    { pag: 1, tam: 25, total: 0 },
+  llamado:    { pag: 1, tam: 25, total: 0 },
+  postulante: { pag: 1, tam: 25, total: 0 }
+};
+
+function paginarArray(arr, tipo) {
+  const p = paginacion[tipo];
+  p.total = Math.max(1, Math.ceil(arr.length / p.tam));
+  if (p.pag > p.total) p.pag = p.total;
+  if (p.pag < 1) p.pag = 1;
+  const inicio = (p.pag - 1) * p.tam;
+  return arr.slice(inicio, inicio + p.tam);
+}
+
+function actualizarInfoPag(tipo, mostrados, total) {
+  const id = 'infoPag' + tipo.charAt(0).toUpperCase() + tipo.slice(1);
+  const el = document.getElementById(id);
+  if (el) el.textContent = `Pág ${paginacion[tipo].pag} de ${paginacion[tipo].total} (${total} total)`;
+}
+
+function cambiarPag(tipo, delta) {
+  paginacion[tipo].pag += delta;
+  if (tipo === 'empresa') renderEmpresas();
+  if (tipo === 'llamado') renderLlamados();
+  if (tipo === 'postulante') renderPostulantes();
+}
+
+function cambiarTamPag(tipo) {
+  const selectId = 'tamPag' + tipo.charAt(0).toUpperCase() + tipo.slice(1);
+  const val = document.getElementById(selectId)?.value || 25;
+  paginacion[tipo].tam = parseInt(val);
+  paginacion[tipo].pag = 1;
+  if (tipo === 'empresa') renderEmpresas();
+  if (tipo === 'llamado') renderLlamados();
+  if (tipo === 'postulante') renderPostulantes();
+}
+
 // ========== INICIO ==========
 document.addEventListener('DOMContentLoaded', () => {
   cargarTablas();
@@ -53,6 +92,14 @@ async function subirTabla(nombre) {
   }
 }
 
+async function actualizarStats() {
+  try {
+    await fetch(`${API}/update-stats`, { method: 'POST' });
+  } catch (e) {
+    // Silencioso: si falla, el dashboard usa fallback local
+  }
+}
+
 function generarId(tabla) {
   const arr = tablas[tabla];
   return arr.length > 0 ? Math.max(...arr.map(x => x.id)) + 1 : 1;
@@ -91,8 +138,10 @@ function llenarSelectLlamados() {
 // EMPRESAS
 // ============================================================
 function renderEmpresas() {
+  let lista = [...tablas.empresa];
+  const paginada = paginarArray(lista, 'empresa');
   const tbody = document.getElementById('tablaEmpresas');
-  tbody.innerHTML = tablas.empresa.map(e => {
+  tbody.innerHTML = paginada.map(e => {
     const count = tablas.llamado.filter(l => l.empresa_id === e.id).length;
     return `<tr>
       <td>#${e.id}</td>
@@ -101,6 +150,7 @@ function renderEmpresas() {
       <td><span class="badge badge-blue">${count}</span></td>
     </tr>`;
   }).join('');
+  actualizarInfoPag('empresa', paginada.length, lista.length);
 }
 
 async function guardarEmpresa() {
@@ -120,6 +170,7 @@ async function guardarEmpresa() {
 
   tablas.empresa.push({ id: generarId('empresa'), nombre, rubro });
   await subirTabla('empresa');
+  await actualizarStats();
 
   document.getElementById('empNombre').value = '';
   document.getElementById('empRubro').value = '';
@@ -148,8 +199,9 @@ function filtrarLlamados() {
     normalizar(l.area).includes(busqueda)
   );
 
+  const paginada = paginarArray(lista, 'llamado');
   const tbody = document.getElementById('tablaLlamados');
-  tbody.innerHTML = lista.map(l => {
+  tbody.innerHTML = paginada.map(l => {
     const emp = tablas.empresa.find(e => e.id === l.empresa_id);
     const count = tablas['llamado-postulante'].filter(r => r.llamado_id === l.id).length;
     return `<tr>
@@ -163,6 +215,7 @@ function filtrarLlamados() {
       <td><button class="btn btn-primary btn-sm" onclick="verLlamado(${l.id})">Ver</button></td>
     </tr>`;
   }).join('');
+  actualizarInfoPag('llamado', paginada.length, lista.length);
 }
 
 async function guardarLlamado() {
@@ -183,6 +236,7 @@ async function guardarLlamado() {
 
   await subirTabla('llamado');
   await subirTabla('llamado-empresa');
+  await actualizarStats();
 
   document.getElementById('llamNombre').value = '';
   document.getElementById('llamCargo').value = '';
@@ -242,9 +296,9 @@ function filtrarPostulantes() {
       normalizar(p.telefono).includes(busqueda)
     );
   }
-
+  const paginada = paginarArray(lista, 'postulante');
   const tbody = document.getElementById('tablaPostulantes');
-  tbody.innerHTML = lista.map(p => {
+  tbody.innerHTML = paginada.map(p => {
     const rels = tablas['llamado-postulante'].filter(r => r.postulante_id === p.id);
     return `<tr>
       <td>#${p.id}</td>
@@ -256,6 +310,7 @@ function filtrarPostulantes() {
       <td><button class="btn btn-primary btn-sm" onclick="verPostulante(${p.id})">Ver</button></td>
     </tr>`;
   }).join('');
+  actualizarInfoPag('postulante', paginada.length, lista.length);
 }
 
 function handleCSV() {
@@ -481,6 +536,7 @@ async function confirmarDuplicados() {
 async function subirPostulantes() {
   await subirTabla('postulante');
   if (llamadoIdParaPostulantes) await subirTabla('llamado-postulante');
+  await actualizarStats();
 
   csvData = []; csvHeaders = []; columnMapping = {}; extraFields = [];
   document.getElementById('csvFile').value = '';
@@ -533,13 +589,26 @@ function cerrarModalPostulante() {
 // ============================================================
 // DASHBOARD
 // ============================================================
-function renderDashboard() {
-  document.getElementById('dash-stats').innerHTML = `
-    <div class="stat-card"><div class="stat-number">${tablas.empresa.length}</div><div class="stat-label">Empresas</div></div>
-    <div class="stat-card"><div class="stat-number">${tablas.llamado.length}</div><div class="stat-label">Llamados</div></div>
-    <div class="stat-card"><div class="stat-number">${tablas.postulante.length}</div><div class="stat-label">Postulantes</div></div>
-    <div class="stat-card"><div class="stat-number">${tablas['llamado-postulante'].length}</div><div class="stat-label">Postulaciones</div></div>
-  `;
+async function renderDashboard() {
+  try {
+    const res = await fetch(`${API}/get-table?table=stats`);
+    const stats = await res.json();
+    if (!stats || typeof stats.empresas !== 'number') throw new Error('No stats');
+
+    document.getElementById('dash-stats').innerHTML = `
+      <div class="stat-card"><div class="stat-number">${stats.empresas}</div><div class="stat-label">Empresas</div></div>
+      <div class="stat-card"><div class="stat-number">${stats.llamados}</div><div class="stat-label">Llamados</div></div>
+      <div class="stat-card"><div class="stat-number">${stats.postulantes}</div><div class="stat-label">Postulantes</div></div>
+      <div class="stat-card"><div class="stat-number">${stats.postulaciones}</div><div class="stat-label">Postulaciones</div></div>
+    `;
+  } catch (e) {
+    document.getElementById('dash-stats').innerHTML = `
+      <div class="stat-card"><div class="stat-number">${tablas.empresa.length}</div><div class="stat-label">Empresas</div></div>
+      <div class="stat-card"><div class="stat-number">${tablas.llamado.length}</div><div class="stat-label">Llamados</div></div>
+      <div class="stat-card"><div class="stat-number">${tablas.postulante.length}</div><div class="stat-label">Postulantes</div></div>
+      <div class="stat-card"><div class="stat-number">${tablas['llamado-postulante'].length}</div><div class="stat-label">Postulaciones</div></div>
+    `;
+  }
 
   const ultLlam = [...tablas.llamado].reverse().slice(0, 5);
   document.getElementById('dash-ult-llamados').innerHTML = ultLlam.map(l => {
