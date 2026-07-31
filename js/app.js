@@ -38,11 +38,39 @@ function switchTab(tabName) {
 }
 
 // ========== LOG ==========
+let logVisible = false;
+let logBuffer = [];
+
+function toggleLog() {
+  logVisible = !logVisible;
+  const toggle = document.getElementById('logToggle');
+  const panel = document.getElementById('logPanel');
+  toggle.classList.toggle('active', logVisible);
+  panel.classList.toggle('visible', logVisible);
+  if (logVisible) renderLog();
+}
+
 function log(msg) {
-  const el = document.getElementById('log');
-  el.classList.remove('hidden');
-  el.innerHTML += '> ' + msg + '<br>';
-  el.scrollTop = el.scrollHeight;
+  const now = new Date();
+  const time = now.toLocaleTimeString('es-AR', { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' });
+
+  let typeClass = 'log-info';
+  if (msg.includes('✅') || msg.includes('Listo') || msg.includes('guardado')) typeClass = 'log-ok';
+  else if (msg.includes('ERROR') || msg.includes('Error')) typeClass = 'log-err';
+  else if (msg.includes('⚠️') || msg.includes('Ignorado')) typeClass = 'log-warn';
+
+  logBuffer.push({ time, msg, typeClass });
+  if (logBuffer.length > 200) logBuffer.shift(); // mantener últimos 200
+
+  if (logVisible) renderLog();
+}
+
+function renderLog() {
+  const body = document.getElementById('logBody');
+  body.innerHTML = logBuffer.map(l => 
+    `<div class="log-line"><span class="log-time">${l.time}</span><span class="${l.typeClass}">${l.msg}</span></div>`
+  ).join('');
+  body.scrollTop = body.scrollHeight;
 }
 
 // ========== CARGAR TABLAS ==========
