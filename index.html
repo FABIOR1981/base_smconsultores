@@ -3,166 +3,149 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>SM Consultores - Gestión de Llamados</title>
+  <title>SM Consultores</title>
   <link rel="stylesheet" href="./css/styles.css">
 </head>
 <body>
   <div class="container">
-
-    <!-- HEADER -->
     <div class="app-header">
       <h1>SM Consultores</h1>
-      <p>Gestión de Llamados y Postulantes</p>
+      <p>Gestión de Empresas, Llamados y Postulantes</p>
     </div>
 
-    <!-- TABS -->
     <div class="tabs">
-      <button id="btn-cargar" class="tab-btn active" onclick="switchTab('cargar')">📤 Cargar Datos</button>
-      <button id="btn-dashboard" class="tab-btn" onclick="switchTab('dashboard')">📊 Dashboard</button>
-      <button id="btn-llamados" class="tab-btn" onclick="switchTab('llamados')">📋 Llamados</button>
+      <button id="btn-empresas" class="tab-btn" onclick="switchTab('empresas')">🏢 Empresas</button>
+      <button id="btn-llamados" class="tab-btn" onclick="switchTab('llamados')">📢 Llamados</button>
       <button id="btn-postulantes" class="tab-btn" onclick="switchTab('postulantes')">👤 Postulantes</button>
+      <button id="btn-dashboard" class="tab-btn active" onclick="switchTab('dashboard')">📊 Dashboard</button>
     </div>
 
-    <!-- ==================== TAB: CARGAR DATOS ==================== -->
-    <div id="tab-cargar" class="tab-content">
-
-      <!-- EMPRESA -->
-      <div class="section">
-        <h2 class="section-title">🏢 Datos de la Empresa</h2>
-        <label class="label">Empresa existente</label>
-        <select id="empresaSelect" class="input" onchange="toggleNuevaEmpresa()">
-          <option value="">-- Crear nueva empresa --</option>
-        </select>
-        <p id="empresaWarning" class="hidden warning-box"></p>
-
-        <div id="nuevaEmpresaBox">
-          <label class="label">Nombre de la Empresa *</label>
-          <input type="text" id="empresaNombre" class="input" placeholder="Ej: ACME S.A." onblur="checkEmpresaDuplicada()">
-          <label class="label">Rubro / Detalle</label>
-          <input type="text" id="empresaRubro" class="input" placeholder="Ej: Tecnología">
+    <!-- ==================== DASHBOARD ==================== -->
+    <div id="tab-dashboard" class="tab-content">
+      <div class="stats-grid" id="dash-stats"></div>
+      <div class="section" style="margin-top:1.5rem;">
+        <h2 class="section-title">🕐 Últimos registros</h2>
+        <div class="grid-2">
+          <div>
+            <h3 style="font-size:0.9rem; color:#64748b; margin-bottom:0.5rem; text-transform:uppercase;">Últimos Llamados</h3>
+            <div class="table-wrap"><table><thead><tr><th>ID</th><th>Nombre</th><th>Cargo</th><th>Empresa</th><th>Fecha</th></tr></thead><tbody id="dash-ult-llamados"></tbody></table></div>
+          </div>
+          <div>
+            <h3 style="font-size:0.9rem; color:#64748b; margin-bottom:0.5rem; text-transform:uppercase;">Últimos Postulantes</h3>
+            <div class="table-wrap"><table><thead><tr><th>ID</th><th>Nombre</th><th>Apellido</th><th>Email</th></tr></thead><tbody id="dash-ult-postulantes"></tbody></table></div>
+          </div>
         </div>
       </div>
+    </div>
 
-      <!-- LLAMADO -->
-      <div class="section">
-        <h2 class="section-title">📢 Datos del Llamado</h2>
-        <label class="label">¿Es un llamado nuevo o complementario?</label>
-        <div class="radio-group">
-          <label><input type="radio" name="tipoLlamado" value="nuevo" checked onchange="toggleTipoLlamado()"> Nuevo llamado</label>
-          <label><input type="radio" name="tipoLlamado" value="complementario" onchange="toggleTipoLlamado()"> Agregar a llamado existente</label>
+    <!-- ==================== EMPRESAS ==================== -->
+    <div id="tab-empresas" class="tab-content hidden">
+      <div class="grid-2">
+        <div class="section">
+          <h2 class="section-title">➕ Nueva Empresa</h2>
+          <label class="label">Nombre *</label>
+          <input type="text" id="empNombre" class="input" placeholder="Ej: ACME S.A.">
+          <label class="label">Rubro / Detalle</label>
+          <input type="text" id="empRubro" class="input" placeholder="Ej: Tecnología">
+          <p id="empWarning" class="hidden warning-box"></p>
+          <div style="margin-top:1.25rem;">
+            <button onclick="guardarEmpresa()" class="btn btn-success">💾 Guardar Empresa</button>
+          </div>
         </div>
-
-        <div id="llamadoExistenteBox" class="hidden">
-          <label class="label">Seleccionar llamado existente</label>
-          <select id="llamadoSelect" class="input" onchange="cargarDatosLlamado()">
-            <option value="">-- Selecciona un llamado --</option>
-          </select>
-          <div id="llamadoInfo" class="hidden info-box"></div>
+        <div class="section">
+          <h2 class="section-title">📋 Empresas registradas</h2>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>ID</th><th>Nombre</th><th>Rubro</th><th>Llamados</th></tr></thead>
+              <tbody id="tablaEmpresas"></tbody>
+            </table>
+          </div>
         </div>
+      </div>
+    </div>
 
-        <div id="llamadoNuevoBox">
+    <!-- ==================== LLAMADOS ==================== -->
+    <div id="tab-llamados" class="tab-content hidden">
+      <div class="grid-2">
+        <div class="section">
+          <h2 class="section-title">➕ Nuevo Llamado</h2>
+          <label class="label">Empresa *</label>
+          <select id="llamEmpresa" class="input"><option value="">-- Seleccionar empresa --</option></select>
+          <label class="label">Nombre del Llamado *</label>
+          <input type="text" id="llamNombre" class="input" placeholder="Ej: Búsqueda de Desarrollador">
           <div class="grid-2">
             <div>
-              <label class="label">Nombre del Llamado *</label>
-              <input type="text" id="llamadoNombre" class="input" placeholder="Ej: Búsqueda de Desarrollador">
-            </div>
-            <div>
               <label class="label">Fecha *</label>
-              <input type="date" id="llamadoFecha" class="input">
+              <input type="date" id="llamFecha" class="input">
             </div>
             <div>
               <label class="label">Cargo *</label>
-              <input type="text" id="llamadoCargo" class="input" placeholder="Ej: Desarrollador Full Stack">
+              <input type="text" id="llamCargo" class="input" placeholder="Ej: Desarrollador">
             </div>
-            <div>
-              <label class="label">Área *</label>
-              <input type="text" id="llamadoArea" class="input" placeholder="Ej: Sistemas">
-            </div>
+          </div>
+          <label class="label">Área *</label>
+          <input type="text" id="llamArea" class="input" placeholder="Ej: Sistemas">
+          <div style="margin-top:1.25rem;">
+            <button onclick="guardarLlamado()" class="btn btn-success">💾 Guardar Llamado</button>
           </div>
         </div>
-      </div>
-
-      <!-- CSV -->
-      <div class="section">
-        <h2 class="section-title">📄 Carga de Postulantes (CSV)</h2>
-        <input type="file" id="csvFile" accept=".csv" class="input mb-4" onchange="handleCSV()">
-
-        <div id="csvPreviewBox" class="hidden">
-          <p class="text-gray text-sm mb-2">Mapea las columnas del CSV a los campos:</p>
-          <div class="grid-4" id="columnMap"></div>
-
-          <div class="flex gap-2 mb-4">
-            <input type="text" id="newFieldName" class="input" style="width:auto; min-width:200px;" placeholder="Nuevo campo extra">
-            <button onclick="addExtraField()" class="btn btn-secondary">Agregar campo</button>
+        <div class="section">
+          <h2 class="section-title">📋 Llamados registrados</h2>
+          <div class="search-bar">
+            <select id="filtroEmpresaLlam" class="input" style="width:auto;min-width:200px;" onchange="filtrarLlamados()"><option value="">Todas las empresas</option></select>
+            <input type="text" id="buscarLlamado" class="input" placeholder="Buscar..." oninput="filtrarLlamados()">
           </div>
-          <div id="extraFields" class="flex flex-wrap gap-2 mb-4"></div>
-
           <div class="table-wrap">
             <table>
-              <thead id="previewHead"></thead>
-              <tbody id="previewBody"></tbody>
+              <thead><tr><th>ID</th><th>Nombre</th><th>Cargo</th><th>Área</th><th>Empresa</th><th>Fecha</th><th>Post.</th><th></th></tr></thead>
+              <tbody id="tablaLlamados"></tbody>
             </table>
           </div>
-          <p class="text-xs text-gray mt-2" id="previewCount"></p>
-        </div>
-      </div>
-
-      <!-- ACCIONES -->
-      <div class="flex justify-center gap-4 mb-12">
-        <button onclick="iniciarGuardado()" class="btn btn-success btn-lg">💾 Guardar Todo en GitHub</button>
-      </div>
-    </div>
-
-    <!-- ==================== TAB: DASHBOARD ==================== -->
-    <div id="tab-dashboard" class="tab-content hidden">
-      <div class="stats-grid" id="dash-stats"></div>
-
-      <div class="section" style="margin-top:1.5rem;">
-        <h2 class="section-title">🕐 Últimos Llamados</h2>
-        <div class="table-wrap">
-          <table>
-            <thead>
-              <tr><th>ID</th><th>Nombre</th><th>Cargo</th><th>Área</th><th>Empresa</th><th>Fecha</th><th>Postulantes</th></tr>
-            </thead>
-            <tbody id="dash-ultimos"></tbody>
-          </table>
         </div>
       </div>
     </div>
 
-    <!-- ==================== TAB: LLAMADOS ==================== -->
-    <div id="tab-llamados" class="tab-content hidden">
-      <div class="section">
-        <h2 class="section-title">📋 Listado de Llamados</h2>
-        <div class="search-bar">
-          <select id="filtroEmpresa" class="input" style="width:auto; min-width:220px;" onchange="filtrarLlamados()">
-            <option value="">Todas las empresas</option>
-          </select>
-          <input type="text" id="buscarLlamado" class="input" placeholder="Buscar por nombre, cargo o área..." oninput="filtrarLlamados()">
-        </div>
-        <div class="table-wrap">
-          <table>
-            <thead>
-              <tr><th>ID</th><th>Nombre</th><th>Cargo</th><th>Área</th><th>Empresa</th><th>Fecha</th><th>Postulantes</th><th></th></tr>
-            </thead>
-            <tbody id="tablaLlamados"></tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-
-    <!-- ==================== TAB: POSTULANTES ==================== -->
+    <!-- ==================== POSTULANTES ==================== -->
     <div id="tab-postulantes" class="tab-content hidden">
       <div class="section">
-        <h2 class="section-title">👤 Listado de Postulantes</h2>
+        <h2 class="section-title">📄 Cargar Postulantes desde CSV</h2>
+        <div class="grid-2">
+          <div>
+            <label class="label">Archivo CSV</label>
+            <input type="file" id="csvFile" accept=".csv" class="input" onchange="handleCSV()">
+            <div id="csvPreviewBox" class="hidden" style="margin-top:1rem;">
+              <p class="text-gray text-sm mb-2">Mapeo de columnas:</p>
+              <div class="grid-4" id="columnMap"></div>
+              <div class="flex gap-2 mt-2">
+                <input type="text" id="newFieldName" class="input" style="width:auto;min-width:180px;" placeholder="Campo extra">
+                <button onclick="addExtraField()" class="btn btn-secondary btn-sm">Agregar</button>
+              </div>
+              <div id="extraFields" class="flex flex-wrap gap-2 mt-2"></div>
+            </div>
+          </div>
+          <div>
+            <label class="label">Asociar a llamado (opcional)</label>
+            <select id="postuLlamado" class="input"><option value="">-- Sin llamado --</option></select>
+            <div id="postuLlamadoInfo" class="hidden info-box mt-2"></div>
+          </div>
+        </div>
+        <div id="csvTableWrap" class="hidden table-wrap mt-4">
+          <table><thead id="previewHead"></thead><tbody id="previewBody"></tbody></table>
+          <p class="text-xs text-gray mt-2" id="previewCount"></p>
+        </div>
+        <div class="flex justify-center mt-4">
+          <button onclick="guardarPostulantesCSV()" class="btn btn-success btn-lg">💾 Guardar Postulantes</button>
+        </div>
+      </div>
+
+      <div class="section">
+        <h2 class="section-title">👤 Postulantes registrados</h2>
         <div class="search-bar">
           <input type="text" id="buscarPostulante" class="input" placeholder="Buscar por nombre, apellido, email o teléfono..." oninput="filtrarPostulantes()">
         </div>
         <div class="table-wrap">
           <table>
-            <thead>
-              <tr><th>ID</th><th>Nombre</th><th>Apellido</th><th>Email</th><th>Teléfono</th><th>Llamados</th><th></th></tr>
-            </thead>
+            <thead><tr><th>ID</th><th>Nombre</th><th>Apellido</th><th>Email</th><th>Teléfono</th><th>Llamados</th><th></th></tr></thead>
             <tbody id="tablaPostulantes"></tbody>
           </table>
         </div>
@@ -170,15 +153,13 @@
     </div>
   </div>
 
-  <!-- ==================== MODALES ==================== -->
-
-  <!-- Modal Duplicados -->
+  <!-- MODALES -->
   <div id="modalDuplicados" class="modal-overlay hidden">
     <div class="modal-box">
       <div class="modal-header">
         <div>
-          <h2 style="font-size:1.4rem; font-weight:800; color:#dc2626;">⚠️ Postulantes duplicados</h2>
-          <p class="text-gray text-sm mt-1">Se encontraron <strong id="dupCantidad">0</strong> postulantes que ya existen en la base de datos.</p>
+          <h2 style="font-size:1.4rem;font-weight:800;color:#dc2626;">⚠️ Duplicados detectados</h2>
+          <p class="text-gray text-sm mt-1"><strong id="dupCantidad">0</strong> postulantes ya existen.</p>
         </div>
         <button onclick="cerrarModalDuplicados()" class="modal-close">×</button>
       </div>
@@ -186,15 +167,10 @@
         <span class="font-bold text-sm">Aplicar a todos:</span>
         <button onclick="aplicarATodos('ignorar')" class="btn btn-secondary btn-sm">🚫 Ignorar</button>
         <button onclick="aplicarATodos('actualizar')" class="btn btn-warning btn-sm">🔄 Actualizar</button>
-        <button onclick="aplicarATodos('nuevo')" class="btn btn-primary btn-sm">➕ Crear nuevo</button>
+        <button onclick="aplicarATodos('nuevo')" class="btn btn-primary btn-sm">➕ Nuevo</button>
       </div>
-      <div style="overflow-x:auto; max-height:50vh;">
-        <table>
-          <thead>
-            <tr><th>#</th><th>Nombre</th><th>Registro existente</th><th>Datos nuevos (CSV)</th><th>Acción</th><th>Estado</th></tr>
-          </thead>
-          <tbody id="dupTablaBody"></tbody>
-        </table>
+      <div style="overflow-x:auto;max-height:50vh;">
+        <table><thead><tr><th>#</th><th>Nombre</th><th>Existente</th><th>Nuevos (CSV)</th><th>Acción</th><th>Estado</th></tr></thead><tbody id="dupTablaBody"></tbody></table>
       </div>
       <div class="flex justify-end gap-3" style="margin-top:1.5rem;">
         <button onclick="cerrarModalDuplicados()" class="btn btn-secondary">Cancelar</button>
@@ -203,32 +179,29 @@
     </div>
   </div>
 
-  <!-- Modal Cargando -->
   <div id="modalCargando" class="modal-overlay hidden">
-    <div style="background:white; padding:2.5rem; border-radius:1rem; text-align:center; box-shadow:0 25px 60px rgba(0,0,0,0.2);">
-      <div style="font-size:3rem; margin-bottom:0.75rem; animation:spin 1s linear infinite;">⏳</div>
-      <h3 style="font-weight:800; font-size:1.1rem; color:#1e293b;">Guardando en GitHub...</h3>
-      <p class="text-gray text-sm mt-2">Por favor no cierres esta ventana.</p>
+    <div style="background:white;padding:2.5rem;border-radius:1rem;text-align:center;box-shadow:0 25px 60px rgba(0,0,0,0.2);">
+      <div style="font-size:3rem;margin-bottom:0.75rem;animation:spin 1s linear infinite;">⏳</div>
+      <h3 style="font-weight:800;font-size:1.1rem;color:#1e293b;">Guardando en GitHub...</h3>
+      <p class="text-gray text-sm mt-2">No cierres esta ventana.</p>
     </div>
   </div>
-  <style>@keyframes spin { from{transform:rotate(0)} to{transform:rotate(360deg)} }</style>
+  <style>@keyframes spin{from{transform:rotate(0)}to{transform:rotate(360deg)}}</style>
 
-  <!-- Modal Detalle Llamado -->
   <div id="modalLlamado" class="modal-overlay hidden">
     <div class="modal-box modal-box-sm">
       <div class="modal-header">
-        <h2 id="modalLlamadoTitulo" style="font-size:1.1rem; font-weight:800; color:#1e3a5f;"></h2>
+        <h2 id="modalLlamadoTitulo" style="font-size:1.1rem;font-weight:800;color:#1e3a5f;"></h2>
         <button onclick="cerrarModalLlamado()" class="modal-close">×</button>
       </div>
       <div id="modalLlamadoBody"></div>
     </div>
   </div>
 
-  <!-- Modal Detalle Postulante -->
   <div id="modalPostulante" class="modal-overlay hidden">
     <div class="modal-box">
       <div class="modal-header">
-        <h2 id="modalPostulanteTitulo" style="font-size:1.1rem; font-weight:800; color:#1e3a5f;"></h2>
+        <h2 id="modalPostulanteTitulo" style="font-size:1.1rem;font-weight:800;color:#1e3a5f;"></h2>
         <button onclick="cerrarModalPostulante()" class="modal-close">×</button>
       </div>
       <div id="modalPostulanteBody"></div>
