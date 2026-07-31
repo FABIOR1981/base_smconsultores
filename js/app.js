@@ -26,12 +26,17 @@ function switchTab(name) {
 
 // ========== CARGAR TABLAS ==========
 async function cargarTablas() {
-  for (const t of Object.keys(tablas)) {
-    try {
-      const res = await fetch(`${API}/get-table?table=${t}`);
-      tablas[t] = await res.json();
-    } catch (e) { tablas[t] = []; }
-  }
+  const entries = await Promise.all(
+    Object.keys(tablas).map(async (t) => {
+      try {
+        const res = await fetch(`${API}/get-table?table=${t}`);
+        return [t, await res.json()];
+      } catch (e) {
+        return [t, []];
+      }
+    })
+  );
+  tablas = Object.fromEntries(entries);
   llenarSelectsEmpresa();
   llenarSelectLlamados();
 }
