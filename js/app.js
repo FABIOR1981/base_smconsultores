@@ -75,7 +75,6 @@ function renderLog() {
 
 // ========== CARGAR TABLAS ==========
 async function cargarTablas() {
-  log('Cargando tablas desde GitHub...');
   for (const t of Object.keys(tablas)) {
     try {
       const res = await fetch(`${API}/get-table?table=${t}`);
@@ -86,7 +85,6 @@ async function cargarTablas() {
   }
   renderEmpresas();
   renderLlamadosSelect();
-  log(`Listo. Empresas: ${tablas.empresa.length}, Llamados: ${tablas.llamado.length}, Postulantes: ${tablas.postulante.length}`);
 }
 
 // ========== EMPRESA ==========
@@ -178,7 +176,6 @@ function parseCSV(text) {
   renderColumnMap();
   renderPreview();
   document.getElementById('csvPreviewBox').classList.remove('hidden');
-  log(`CSV cargado: ${csvData.length} postulantes.`);
 }
 
 function renderColumnMap() {
@@ -260,7 +257,6 @@ function buscarDuplicado(nombre, apellido) {
 
 // ========== GUARDADO PRINCIPAL ==========
 async function iniciarGuardado() {
-  log('Iniciando validación...');
   const tipo = document.querySelector('input[name="tipoLlamado"]:checked').value;
 
   if (tipo === 'nuevo') {
@@ -277,11 +273,9 @@ async function iniciarGuardado() {
       const existe = tablas.empresa.find(e => normalizar(e.nombre) === normalizar(nom));
       if (existe) {
         empresaIdGlobal = existe.id;
-        log(`Empresa existente usada: ${existe.nombre}`);
       } else {
         empresaIdGlobal = generarId('empresa');
         tablas.empresa.push({ id: empresaIdGlobal, nombre: nom, rubro: document.getElementById('empresaRubro').value.trim() });
-        log(`Nueva empresa ID=${empresaIdGlobal}`);
       }
     } else {
       empresaIdGlobal = tablas.empresa[selIdx].id;
@@ -297,7 +291,6 @@ async function iniciarGuardado() {
       empresa_id: empresaIdGlobal
     });
     tablas['llamado-empresa'].push({ llamado_id: llamadoIdGlobal, empresa_id: empresaIdGlobal });
-    log(`Nuevo llamado ID=${llamadoIdGlobal}`);
 
   } else {
     const selLlamado = document.getElementById('llamadoSelect').value;
@@ -305,7 +298,6 @@ async function iniciarGuardado() {
     const l = tablas.llamado[selLlamado];
     llamadoIdGlobal = l.id;
     empresaIdGlobal = l.empresa_id;
-    log(`Complementario al llamado ID=${llamadoIdGlobal}`);
   }
 
   if (csvData.length === 0) return alert('Carga un archivo CSV primero.');
@@ -331,10 +323,9 @@ async function iniciarGuardado() {
     tablas.postulante.push(nuevo);
     tablas['llamado-postulante'].push({ llamado_id: llamadoIdGlobal, postulante_id: nuevo.id });
   });
-  if (noDuplicados.length) log(`${noDuplicados.length} postulantes nuevos listos.`);
+  
 
   if (duplicadosLista.length === 0) {
-    log('Sin duplicados. Subiendo a GitHub...');
     await subirTodo();
     return;
   }
@@ -411,7 +402,6 @@ async function confirmarDuplicados() {
       if (!tieneRel) {
         tablas['llamado-postulante'].push({ llamado_id: llamadoIdGlobal, postulante_id: d.existente.id });
       }
-      log(`Ignorado: ${nom} ${ape}`);
 
     } else if (d.accion === 'actualizar') {
       const actualizado = construirPostulanteObj(d.row, d.existente.id);
@@ -423,13 +413,13 @@ async function confirmarDuplicados() {
       if (!tieneRel) {
         tablas['llamado-postulante'].push({ llamado_id: llamadoIdGlobal, postulante_id: d.existente.id });
       }
-      log(`Actualizado: ${nom} ${ape} (ID: ${d.existente.id})`);
+      
 
     } else if (d.accion === 'nuevo') {
       const nuevo = construirPostulanteObj(d.row, generarId('postulante'));
       tablas.postulante.push(nuevo);
       tablas['llamado-postulante'].push({ llamado_id: llamadoIdGlobal, postulante_id: nuevo.id });
-      log(`Creado nuevo: ${nom} ${ape} (ID: ${nuevo.id})`);
+      
     }
   }
 
@@ -440,7 +430,6 @@ async function confirmarDuplicados() {
 async function subirTodo() {
   const tablesToUpload = ['empresa', 'llamado', 'postulante', 'llamado-empresa', 'llamado-postulante'];
   for (const t of tablesToUpload) {
-    log(`Subiendo ${t}.json...`);
     const res = await fetch(`${API}/update-table`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -448,13 +437,12 @@ async function subirTodo() {
     });
     if (!res.ok) {
       const err = await res.json();
-      log(`ERROR en ${t}: ${JSON.stringify(err)}`);
+      
       alert(`Error guardando ${t}.json`);
       return;
     }
   }
 
-  log('✅ ¡Todo guardado exitosamente en GitHub!');
   alert('Datos guardados correctamente.');
   resetFormulario();
   await cargarTablas();

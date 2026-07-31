@@ -8,9 +8,12 @@
 </head>
 <body>
   <div class="container">
-    <h1 style="font-size:1.875rem; font-weight:700; text-align:center; margin-bottom:2rem; color:#1f2937;">
-      SM Consultores - Gestión de Llamados
-    </h1>
+
+    <!-- HEADER -->
+    <div class="app-header">
+      <h1>SM Consultores</h1>
+      <p>Gestión de Llamados y Postulantes</p>
+    </div>
 
     <!-- TABS -->
     <div class="tabs">
@@ -25,12 +28,12 @@
 
       <!-- EMPRESA -->
       <div class="section">
-        <h2 class="section-title">1. Datos de la Empresa</h2>
+        <h2 class="section-title">🏢 Datos de la Empresa</h2>
         <label class="label">Empresa existente</label>
         <select id="empresaSelect" class="input" onchange="toggleNuevaEmpresa()">
           <option value="">-- Crear nueva empresa --</option>
         </select>
-        <p id="empresaWarning" class="hidden text-red text-sm mt-2"></p>
+        <p id="empresaWarning" class="hidden warning-box"></p>
 
         <div id="nuevaEmpresaBox">
           <label class="label">Nombre de la Empresa *</label>
@@ -42,7 +45,7 @@
 
       <!-- LLAMADO -->
       <div class="section">
-        <h2 class="section-title">2. Datos del Llamado</h2>
+        <h2 class="section-title">📢 Datos del Llamado</h2>
         <label class="label">¿Es un llamado nuevo o complementario?</label>
         <div class="radio-group">
           <label><input type="radio" name="tipoLlamado" value="nuevo" checked onchange="toggleTipoLlamado()"> Nuevo llamado</label>
@@ -54,7 +57,7 @@
           <select id="llamadoSelect" class="input" onchange="cargarDatosLlamado()">
             <option value="">-- Selecciona un llamado --</option>
           </select>
-          <div id="llamadoInfo" class="hidden bg-gray-50 rounded p-3 mt-2 text-sm text-gray"></div>
+          <div id="llamadoInfo" class="hidden info-box"></div>
         </div>
 
         <div id="llamadoNuevoBox">
@@ -81,7 +84,7 @@
 
       <!-- CSV -->
       <div class="section">
-        <h2 class="section-title">3. Carga de Postulantes (CSV)</h2>
+        <h2 class="section-title">📄 Carga de Postulantes (CSV)</h2>
         <input type="file" id="csvFile" accept=".csv" class="input mb-4" onchange="handleCSV()">
 
         <div id="csvPreviewBox" class="hidden">
@@ -89,7 +92,7 @@
           <div class="grid-4" id="columnMap"></div>
 
           <div class="flex gap-2 mb-4">
-            <input type="text" id="newFieldName" class="input" style="width:auto;" placeholder="Nuevo campo extra">
+            <input type="text" id="newFieldName" class="input" style="width:auto; min-width:200px;" placeholder="Nuevo campo extra">
             <button onclick="addExtraField()" class="btn btn-secondary">Agregar campo</button>
           </div>
           <div id="extraFields" class="flex flex-wrap gap-2 mb-4"></div>
@@ -105,30 +108,8 @@
       </div>
 
       <!-- ACCIONES -->
-      <div class="flex justify-center gap-4 mb-6">
+      <div class="flex justify-center gap-4 mb-12">
         <button onclick="iniciarGuardado()" class="btn btn-success btn-lg">💾 Guardar Todo en GitHub</button>
-      </div>
-
-      <!-- TOGGLE LOG -->
-      <div class="log-toggle-wrap">
-        <span class="log-toggle-label">🔧 Mostrar log de operaciones</span>
-        <label class="switch">
-          <input type="checkbox" id="logToggle" onchange="toggleLog()">
-          <span class="slider"></span>
-        </label>
-      </div>
-
-      <!-- LOG (oculto por defecto) -->
-      <!-- TOGGLE LOG -->
-      <div class="log-toggle-wrap">
-        <span class="log-toggle-label">🪵 Ver registro de actividad</span>
-        <div id="logToggle" class="toggle-switch" onclick="toggleLog()"></div>
-      </div>
-
-      <!-- LOG PANEL -->
-      <div id="logPanel" class="log-panel">
-        <div class="log-header">Registro de actividad</div>
-        <div id="logBody" class="log-body"></div>
       </div>
     </div>
 
@@ -137,7 +118,7 @@
       <div class="stats-grid" id="dash-stats"></div>
 
       <div class="section" style="margin-top:1.5rem;">
-        <h2 class="section-title">Últimos Llamados</h2>
+        <h2 class="section-title">🕐 Últimos Llamados</h2>
         <div class="table-wrap">
           <table>
             <thead>
@@ -152,9 +133,9 @@
     <!-- ==================== TAB: LLAMADOS ==================== -->
     <div id="tab-llamados" class="tab-content hidden">
       <div class="section">
-        <h2 class="section-title">Listado de Llamados</h2>
+        <h2 class="section-title">📋 Listado de Llamados</h2>
         <div class="search-bar">
-          <select id="filtroEmpresa" class="input" style="width:auto; min-width:200px;" onchange="filtrarLlamados()">
+          <select id="filtroEmpresa" class="input" style="width:auto; min-width:220px;" onchange="filtrarLlamados()">
             <option value="">Todas las empresas</option>
           </select>
           <input type="text" id="buscarLlamado" class="input" placeholder="Buscar por nombre, cargo o área..." oninput="filtrarLlamados()">
@@ -173,7 +154,7 @@
     <!-- ==================== TAB: POSTULANTES ==================== -->
     <div id="tab-postulantes" class="tab-content hidden">
       <div class="section">
-        <h2 class="section-title">Listado de Postulantes</h2>
+        <h2 class="section-title">👤 Listado de Postulantes</h2>
         <div class="search-bar">
           <input type="text" id="buscarPostulante" class="input" placeholder="Buscar por nombre, apellido, email o teléfono..." oninput="filtrarPostulantes()">
         </div>
@@ -196,8 +177,8 @@
     <div class="modal-box">
       <div class="modal-header">
         <div>
-          <h2 style="font-size:1.5rem; font-weight:700; color:#dc2626;">⚠️ Postulantes duplicados detectados</h2>
-          <p class="text-gray text-sm mt-1">Se encontraron <strong id="dupCantidad">0</strong> postulantes que ya existen.</p>
+          <h2 style="font-size:1.4rem; font-weight:800; color:#dc2626;">⚠️ Postulantes duplicados</h2>
+          <p class="text-gray text-sm mt-1">Se encontraron <strong id="dupCantidad">0</strong> postulantes que ya existen en la base de datos.</p>
         </div>
         <button onclick="cerrarModalDuplicados()" class="modal-close">×</button>
       </div>
@@ -205,7 +186,7 @@
         <span class="font-bold text-sm">Aplicar a todos:</span>
         <button onclick="aplicarATodos('ignorar')" class="btn btn-secondary btn-sm">🚫 Ignorar</button>
         <button onclick="aplicarATodos('actualizar')" class="btn btn-warning btn-sm">🔄 Actualizar</button>
-        <button onclick="aplicarATodos('nuevo')" class="btn btn-sm">➕ Crear nuevo</button>
+        <button onclick="aplicarATodos('nuevo')" class="btn btn-primary btn-sm">➕ Crear nuevo</button>
       </div>
       <div style="overflow-x:auto; max-height:50vh;">
         <table>
@@ -217,25 +198,26 @@
       </div>
       <div class="flex justify-end gap-3" style="margin-top:1.5rem;">
         <button onclick="cerrarModalDuplicados()" class="btn btn-secondary">Cancelar</button>
-        <button onclick="confirmarDuplicados()" class="btn btn-success" style="font-weight:700;">✅ Confirmar y guardar todo</button>
+        <button onclick="confirmarDuplicados()" class="btn btn-success" style="font-weight:700;">✅ Confirmar y guardar</button>
       </div>
     </div>
   </div>
 
   <!-- Modal Cargando -->
   <div id="modalCargando" class="modal-overlay hidden">
-    <div style="background:white; padding:2rem; border-radius:0.75rem; text-align:center;">
-      <div style="font-size:2rem; margin-bottom:0.5rem;">⏳</div>
-      <h3 style="font-weight:700;">Guardando en GitHub...</h3>
-      <p class="text-gray text-sm">Por favor no cierres esta ventana.</p>
+    <div style="background:white; padding:2.5rem; border-radius:1rem; text-align:center; box-shadow:0 25px 60px rgba(0,0,0,0.2);">
+      <div style="font-size:3rem; margin-bottom:0.75rem; animation:spin 1s linear infinite;">⏳</div>
+      <h3 style="font-weight:800; font-size:1.1rem; color:#1e293b;">Guardando en GitHub...</h3>
+      <p class="text-gray text-sm mt-2">Por favor no cierres esta ventana.</p>
     </div>
   </div>
+  <style>@keyframes spin { from{transform:rotate(0)} to{transform:rotate(360deg)} }</style>
 
   <!-- Modal Detalle Llamado -->
   <div id="modalLlamado" class="modal-overlay hidden">
     <div class="modal-box modal-box-sm">
       <div class="modal-header">
-        <h2 id="modalLlamadoTitulo" style="font-size:1.25rem; font-weight:700;"></h2>
+        <h2 id="modalLlamadoTitulo" style="font-size:1.1rem; font-weight:800; color:#1e3a5f;"></h2>
         <button onclick="cerrarModalLlamado()" class="modal-close">×</button>
       </div>
       <div id="modalLlamadoBody"></div>
@@ -246,7 +228,7 @@
   <div id="modalPostulante" class="modal-overlay hidden">
     <div class="modal-box">
       <div class="modal-header">
-        <h2 id="modalPostulanteTitulo" style="font-size:1.25rem; font-weight:700;"></h2>
+        <h2 id="modalPostulanteTitulo" style="font-size:1.1rem; font-weight:800; color:#1e3a5f;"></h2>
         <button onclick="cerrarModalPostulante()" class="modal-close">×</button>
       </div>
       <div id="modalPostulanteBody"></div>
