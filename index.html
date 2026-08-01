@@ -8,10 +8,30 @@
 <base target="_blank">
 </head>
 <body>
-  <div class="container">
+  <!-- ==================== LOGIN ==================== -->
+  <div id="pantallaLogin" class="container" style="max-width:400px;">
+    <div class="app-header">
+      <h1>SM Consultores</h1>
+      <p>Iniciar sesión</p>
+    </div>
+    <div class="section">
+      <label class="label">Usuario</label>
+      <input type="text" id="loginUsuario" class="input" placeholder="Usuario" autocomplete="username">
+      <label class="label">Contraseña</label>
+      <input type="password" id="loginPassword" class="input" placeholder="Contraseña" autocomplete="current-password" onkeydown="if(event.key==='Enter') login()">
+      <p id="loginError" class="hidden warning-box"></p>
+      <div style="margin-top:1.25rem;">
+        <button onclick="login()" class="btn btn-success" style="width:100%;">🔒 Ingresar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== APP ==================== -->
+  <div id="appContainer" class="container hidden">
     <div class="app-header">
       <h1>SM Consultores</h1>
       <p>Gestión de Empresas, Llamados y Postulantes</p>
+      <button onclick="logout()" class="btn btn-sm btn-secondary" style="position:absolute; top:1rem; right:1rem;">Salir</button>
     </div>
 
     <div class="tabs">

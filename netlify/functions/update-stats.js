@@ -1,8 +1,15 @@
+const { requireAuth } = require('./_auth');
+
 const OWNER = 'FABIOR1981';
 const REPO  = 'bd';
 const PATH  = 'smconsultores';
 
 exports.handler = async (event) => {
+  const sesion = requireAuth(event);
+  if (!sesion) {
+    return { statusCode: 401, body: JSON.stringify({ error: 'No autorizado' }) };
+  }
+
   if (event.httpMethod !== 'POST') {
     return { statusCode: 405, body: 'Method Not Allowed' };
   }

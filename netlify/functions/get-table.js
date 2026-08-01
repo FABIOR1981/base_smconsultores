@@ -1,8 +1,15 @@
+const { requireAuth } = require('./_auth');
+
 const OWNER = 'FABIOR1981';
 const REPO  = 'bd';
 const PATH  = 'smconsultores';
 
 exports.handler = async (event) => {
+  const sesion = requireAuth(event);
+  if (!sesion) {
+    return { statusCode: 401, body: JSON.stringify({ error: 'No autorizado' }) };
+  }
+
   const table = event.queryStringParameters.table;
   if (!table) {
     return { statusCode: 400, body: JSON.stringify({ error: 'Falta parámetro table' }) };

@@ -1,7 +1,11 @@
 [build]
   functions = "netlify/functions"
 
-[[headers]]
-  for = "/*"
-    [headers.values]
-    Access-Control-Allow-Origin = "*"
+# Nota: se quitó el header CORS "Access-Control-Allow-Origin: *" que estaba acá.
+# No es necesario: el frontend llama a /.netlify/functions/... del mismo sitio (mismo origen),
+# así que no hace falta CORS. Tenerlo abierto solo permitía que CUALQUIER sitio externo
+# pudiera invocar las funciones (incluso sin login, antes de agregar auth).
+#
+# Variables de entorno requeridas (configurar en Netlify > Site settings > Environment variables):
+#   GITHUB_TOKEN    -> token con permiso de escritura sobre FABIOR1981/bd
+#   SESSION_SECRET  -> string aleatoria larga, usada para firmar los tokens de sesión (login)

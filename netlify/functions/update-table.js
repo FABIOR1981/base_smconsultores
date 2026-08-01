@@ -1,15 +1,38 @@
+const { requireAuth } = require('./_auth');
+
 const OWNER = 'FABIOR1981';
 const REPO  = 'bd';
 const PATH  = 'smconsultores';
 
+// Solo se permite escribir estas tablas desde la app (usuarios.json queda fuera de este endpoint)
+const TABLAS_PERMITIDAS = ['empresa', 'llamado', 'postulante', 'llamado-empresa', 'llamado-postulante'];
+const MAX_REGISTROS = 5000; // límite razonable para evitar payloads gigantes por error o abuso
+
 exports.handler = async (event) => {
+  const sesion = requireAuth(event);
+  if (!sesion) {
+    return { statusCode: 401, body: JSON.stringify({ error: 'No autorizado' }) };
+  }
+
   if (event.httpMethod !== 'POST') {
     return { statusCode: 405, body: 'Method Not Allowed' };
   }
 
-  const { table, data } = JSON.parse(event.body);
+  let table, data;
+  try {
+    ({ table, data } = JSON.parse(event.body));
+  } catch {
+    return { statusCode: 400, body: JSON.stringify({ error: 'Body inválido' }) };
+  }
+
   if (!table || !Array.isArray(data)) {
     return { statusCode: 400, body: JSON.stringify({ error: 'Faltan table o data' }) };
+  }
+  if (!TABLAS_PERMITIDAS.includes(table)) {
+    return { statusCode: 400, body: JSON.stringify({ error: 'Tabla no permitida' }) };
+  }
+  if (data.length > MAX_REGISTROS) {
+    return { statusCode: 400, body: JSON.stringify({ error: `Demasiados registros (máx ${MAX_REGISTROS})` }) };
   }
 
   const token = process.env.GITHUB_TOKEN;

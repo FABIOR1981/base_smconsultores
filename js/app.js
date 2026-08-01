@@ -1,5 +1,68 @@
 const API = '/.netlify/functions';
 
+// ========== SESIÓN ==========
+let authToken = sessionStorage.getItem('sm_token') || null;
+
+async function login() {
+  const usuario = document.getElementById('loginUsuario').value.trim();
+  const password = document.getElementById('loginPassword').value;
+  const errEl = document.getElementById('loginError');
+  errEl.classList.add('hidden');
+
+  if (!usuario || !password) {
+    errEl.textContent = 'Completá usuario y contraseña';
+    errEl.classList.remove('hidden');
+    return;
+  }
+
+  try {
+    const res = await fetch(`${API}/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ usuario, password })
+    });
+    const body = await res.json();
+    if (!res.ok) {
+      errEl.textContent = body.error || 'No se pudo iniciar sesión';
+      errEl.classList.remove('hidden');
+      return;
+    }
+    authToken = body.token;
+    sessionStorage.setItem('sm_token', authToken);
+    mostrarApp();
+  } catch (e) {
+    errEl.textContent = 'Error de conexión';
+    errEl.classList.remove('hidden');
+  }
+}
+
+function logout() {
+  authToken = null;
+  sessionStorage.removeItem('sm_token');
+  document.getElementById('appContainer').classList.add('hidden');
+  document.getElementById('pantallaLogin').classList.remove('hidden');
+  document.getElementById('loginPassword').value = '';
+}
+
+function mostrarApp() {
+  document.getElementById('pantallaLogin').classList.add('hidden');
+  document.getElementById('appContainer').classList.remove('hidden');
+  cargarTablas();
+  document.getElementById('llamFecha').valueAsDate = new Date();
+  switchTab('dashboard');
+}
+
+// Wrapper de fetch que agrega el token de sesión y maneja el 401 (sesión vencida/ inválida)
+async function apiFetch(path, options = {}) {
+  const headers = { ...(options.headers || {}), 'Authorization': `Bearer ${authToken}` };
+  const res = await fetch(`${API}${path}`, { ...options, headers });
+  if (res.status === 401) {
+    logout();
+    throw new Error('Sesión vencida, iniciá sesión de nuevo');
+  }
+  return res;
+}
+
 let tablas = { empresa: [], llamado: [], postulante: [], 'llamado-empresa': [], 'llamado-postulante': [] };
 let csvData = [], csvHeaders = [], columnMapping = {}, extraFields = [];
 let duplicadosLista = [];
@@ -46,9 +109,11 @@ function cambiarTamPag(tipo) {
 
 // ========== INICIO ==========
 document.addEventListener('DOMContentLoaded', () => {
-  cargarTablas();
-  document.getElementById('llamFecha').valueAsDate = new Date();
-  switchTab('dashboard');
+  if (authToken) {
+    mostrarApp();
+  } else {
+    document.getElementById('pantallaLogin').classList.remove('hidden');
+  }
 });
 
 // ========== TABS ==========
@@ -68,7 +133,7 @@ async function cargarTablas() {
   const entries = await Promise.all(
     Object.keys(tablas).map(async (t) => {
       try {
-        const res = await fetch(`${API}/get-table?table=${t}`);
+        const res = await apiFetch(`/get-table?table=${t}`);
         return [t, await res.json()];
       } catch (e) {
         return [t, []];
@@ -81,7 +146,7 @@ async function cargarTablas() {
 }
 
 async function subirTabla(nombre) {
-  const res = await fetch(`${API}/update-table`, {
+  const res = await apiFetch(`/update-table`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ table: nombre, data: tablas[nombre] })
@@ -94,7 +159,7 @@ async function subirTabla(nombre) {
 
 async function actualizarStats() {
   try {
-    await fetch(`${API}/update-stats`, { method: 'POST' });
+    await apiFetch(`/update-stats`, { method: 'POST' });
   } catch (e) {
     // Silencioso: si falla, el dashboard usa fallback local
   }
@@ -591,7 +656,7 @@ function cerrarModalPostulante() {
 // ============================================================
 async function renderDashboard() {
   try {
-    const res = await fetch(`${API}/get-table?table=stats`);
+    const res = await apiFetch(`/get-table?table=stats`);
     const stats = await res.json();
     if (!stats || typeof stats.empresas !== 'number') throw new Error('No stats');
 
