@@ -786,6 +786,8 @@ function abrirModalResultados(llamadoId, postulanteId) {
   document.getElementById('resEstado').value = rel.estadoEntrevista || 'pendiente';
   document.getElementById('resPsicolaboral').value = rel.observacionPsicolaboral || '';
   document.getElementById('resPrueba').value = rel.observacionPrueba || '';
+  document.getElementById('resFechaPsicolaboral').value = rel.fechaPsicolaboral || '';
+  document.getElementById('resFechaPrueba').value = rel.fechaPrueba || '';
 
   document.getElementById('modalResultados').classList.remove('hidden');
 }
@@ -802,6 +804,8 @@ async function guardarResultados() {
   const estadoEntrevista = document.getElementById('resEstado').value;
   const observacionPsicolaboral = document.getElementById('resPsicolaboral').value.trim();
   const observacionPrueba = document.getElementById('resPrueba').value.trim();
+  const fechaPsicolaboral = document.getElementById('resFechaPsicolaboral').value;
+  const fechaPrueba = document.getElementById('resFechaPrueba').value;
 
   // Traer la versión más reciente antes de guardar, para no pisar cambios de otra sesión
   const res = await apiFetch(`/get-table?table=llamado-postulante`);
@@ -812,7 +816,7 @@ async function guardarResultados() {
     alert('No se encontró la relación llamado-postulante (¿fue eliminada?).');
     return;
   }
-  actual[idx] = { ...actual[idx], estadoEntrevista, observacionPsicolaboral, observacionPrueba };
+  actual[idx] = { ...actual[idx], estadoEntrevista, observacionPsicolaboral, observacionPrueba, fechaPsicolaboral, fechaPrueba };
 
   tablas['llamado-postulante'] = actual;
   await subirTabla('llamado-postulante');

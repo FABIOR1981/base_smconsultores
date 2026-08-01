@@ -285,10 +285,14 @@
         </select>
 
         <label class="label" style="margin-top:1rem;">Psicolaboral</label>
-        <textarea id="resPsicolaboral" class="input" rows="3" placeholder="Resultado / notas de la entrevista psicolaboral"></textarea>
+        <label class="label" style="margin-top:0;font-weight:400;font-size:0.8rem;">Fecha</label>
+        <input type="date" id="resFechaPsicolaboral" class="input" style="max-width:200px;">
+        <textarea id="resPsicolaboral" class="input" rows="3" placeholder="Resultado / notas de la entrevista psicolaboral" style="margin-top:0.5rem;"></textarea>
 
         <label class="label" style="margin-top:1rem;">Prueba de conocimiento</label>
-        <textarea id="resPrueba" class="input" rows="3" placeholder="Resultado / notas de la prueba de conocimiento"></textarea>
+        <label class="label" style="margin-top:0;font-weight:400;font-size:0.8rem;">Fecha</label>
+        <input type="date" id="resFechaPrueba" class="input" style="max-width:200px;">
+        <textarea id="resPrueba" class="input" rows="3" placeholder="Resultado / notas de la prueba de conocimiento" style="margin-top:0.5rem;"></textarea>
 
         <div class="flex gap-2" style="margin-top:1.25rem;">
           <button onclick="guardarResultados()" class="btn btn-success">💾 Guardar</button>
