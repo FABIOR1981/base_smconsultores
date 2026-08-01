@@ -5,7 +5,7 @@ const REPO  = 'bd';
 const PATH  = 'smconsultores';
 
 // Solo se permite escribir estas tablas desde la app (usuarios.json queda fuera de este endpoint)
-const TABLAS_PERMITIDAS = ['empresa', 'llamado', 'postulante', 'llamado-empresa', 'llamado-postulante'];
+const TABLAS_PERMITIDAS = ['empresa', 'llamado', 'postulante', 'llamado-empresa', 'llamado-postulante', 'archivosImportados'];
 const MAX_REGISTROS = 5000; // límite razonable para evitar payloads gigantes por error o abuso
 
 exports.handler = async (event) => {

@@ -156,6 +156,13 @@
           <div>
             <label class="label">Archivo CSV</label>
             <input type="file" id="csvFile" accept=".csv" class="input" onchange="handleCSV()">
+            <div id="avisoArchivoRepetido" class="hidden warning-box" style="margin-top:1rem;">
+              <p id="avisoArchivoTexto"></p>
+              <div class="flex gap-2" style="margin-top:0.75rem;">
+                <button onclick="continuarConArchivoRepetido()" class="btn btn-warning btn-sm">Continuar igual</button>
+                <button onclick="cancelarArchivoRepetido()" class="btn btn-secondary btn-sm">Cancelar</button>
+              </div>
+            </div>
             <div id="csvPreviewBox" class="hidden" style="margin-top:1rem;">
               <p class="text-gray text-sm mb-2">Mapeo de columnas:</p>
               <div class="grid-4" id="columnMap"></div>

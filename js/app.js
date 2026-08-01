@@ -29,6 +29,7 @@ async function login() {
     }
     authToken = body.token;
     sessionStorage.setItem('sm_token', authToken);
+    sessionStorage.setItem('sm_usuario', body.usuario);
     mostrarApp();
   } catch (e) {
     errEl.textContent = 'Error de conexión';
@@ -39,6 +40,7 @@ async function login() {
 function logout() {
   authToken = null;
   sessionStorage.removeItem('sm_token');
+  sessionStorage.removeItem('sm_usuario');
   document.getElementById('appContainer').classList.add('hidden');
   document.getElementById('pantallaLogin').classList.remove('hidden');
   document.getElementById('loginPassword').value = '';
@@ -63,7 +65,7 @@ async function apiFetch(path, options = {}) {
   return res;
 }
 
-let tablas = { empresa: [], llamado: [], postulante: [], 'llamado-empresa': [], 'llamado-postulante': [] };
+let tablas = { empresa: [], llamado: [], postulante: [], 'llamado-empresa': [], 'llamado-postulante': [], archivosImportados: [] };
 let csvData = [], csvHeaders = [], columnMapping = {}, extraFields = [];
 let duplicadosLista = [];
 let llamadoIdParaPostulantes = null;
@@ -378,13 +380,71 @@ function filtrarPostulantes() {
   actualizarInfoPag('postulante', paginada.length, lista.length);
 }
 
+// ========== CONTROL DE ARCHIVOS YA IMPORTADOS ==========
+let nombreArchivoActual = null;
+let textoCSVPendiente = null;
+
+function normalizarNombreArchivo(nombre) {
+  return (nombre || '').trim().toLowerCase();
+}
+
+function buscarArchivoImportado(nombre) {
+  const clave = normalizarNombreArchivo(nombre);
+  return tablas.archivosImportados.find(a => normalizarNombreArchivo(a.archivo) === clave);
+}
+
 function handleCSV() {
   const file = document.getElementById('csvFile').files[0];
   if (!file) return;
+
+  nombreArchivoActual = file.name;
+  const yaImportado = buscarArchivoImportado(file.name);
+
   const reader = new FileReader();
-  reader.onload = (e) => parseCSV(e.target.result);
+  reader.onload = (e) => {
+    if (yaImportado) {
+      textoCSVPendiente = e.target.result;
+      mostrarAvisoArchivoRepetido(yaImportado);
+    } else {
+      parseCSV(e.target.result);
+    }
+  };
   reader.readAsText(file);
 }
+
+function mostrarAvisoArchivoRepetido(info) {
+  const fecha = new Date(info.fecha).toLocaleString('es-AR');
+  document.getElementById('avisoArchivoTexto').textContent =
+    `⚠️ El archivo "${nombreArchivoActual}" ya fue importado el ${fecha} por ${info.usuario} (${info.cantidadRegistros} filas procesadas). ¿Querés continuar de todas formas?`;
+  document.getElementById('avisoArchivoRepetido').classList.remove('hidden');
+  document.getElementById('csvPreviewBox').classList.add('hidden');
+  document.getElementById('csvTableWrap').classList.add('hidden');
+}
+
+function cancelarArchivoRepetido() {
+  textoCSVPendiente = null;
+  nombreArchivoActual = null;
+  document.getElementById('avisoArchivoRepetido').classList.add('hidden');
+  document.getElementById('csvFile').value = '';
+}
+
+function continuarConArchivoRepetido() {
+  document.getElementById('avisoArchivoRepetido').classList.add('hidden');
+  parseCSV(textoCSVPendiente);
+  textoCSVPendiente = null;
+}
+
+function registrarArchivoImportado(cantidadFilas) {
+  if (!nombreArchivoActual) return;
+  tablas.archivosImportados.push({
+    archivo: nombreArchivoActual,
+    fecha: new Date().toISOString(),
+    usuario: sessionStorage.getItem('sm_usuario') || 'desconocido',
+    cantidadRegistros: cantidadFilas
+  });
+  nombreArchivoActual = null;
+}
+
 
 function parseCSV(text) {
   const lines = text.split(/\r?\n/).filter(l => l.trim());
@@ -599,8 +659,10 @@ async function confirmarDuplicados() {
 }
 
 async function subirPostulantes() {
+  registrarArchivoImportado(csvData.length);
   await subirTabla('postulante');
   if (llamadoIdParaPostulantes) await subirTabla('llamado-postulante');
+  await subirTabla('archivosImportados');
   await actualizarStats();
 
   csvData = []; csvHeaders = []; columnMapping = {}; extraFields = [];
