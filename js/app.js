@@ -68,6 +68,7 @@ async function apiFetch(path, options = {}) {
 let tablas = { empresa: [], llamado: [], postulante: [], 'llamado-empresa': [], 'llamado-postulante': [], archivosImportados: [] };
 let csvData = [], csvHeaders = [], columnMapping = {}, extraFields = [];
 let duplicadosLista = [];
+let relacionesPendientes = [];
 let llamadoIdParaPostulantes = null;
 
 // ========== PAGINACIÓN GLOBAL ==========
@@ -541,6 +542,7 @@ async function guardarPostulantesCSV() {
   if (llamadoIdParaPostulantes) llamadoIdParaPostulantes = parseInt(llamadoIdParaPostulantes);
 
   duplicadosLista = [];
+  relacionesPendientes = [];
   const noDuplicados = [];
 
   for (const row of csvData) {
@@ -558,7 +560,7 @@ async function guardarPostulantesCSV() {
     const nuevo = construirPostulanteObj(row, generarId('postulante'));
     tablas.postulante.push(nuevo);
     if (llamadoIdParaPostulantes) {
-      tablas['llamado-postulante'].push({ llamado_id: llamadoIdParaPostulantes, postulante_id: nuevo.id });
+      relacionesPendientes.push({ llamado_id: llamadoIdParaPostulantes, postulante_id: nuevo.id });
     }
   });
 
@@ -626,30 +628,20 @@ async function confirmarDuplicados() {
   for (const d of duplicadosLista) {
     if (d.accion === 'ignorar') {
       if (llamadoIdParaPostulantes) {
-        const tieneRel = tablas['llamado-postulante'].some(
-          r => r.llamado_id === llamadoIdParaPostulantes && r.postulante_id === d.existente.id
-        );
-        if (!tieneRel) {
-          tablas['llamado-postulante'].push({ llamado_id: llamadoIdParaPostulantes, postulante_id: d.existente.id });
-        }
+        relacionesPendientes.push({ llamado_id: llamadoIdParaPostulantes, postulante_id: d.existente.id });
       }
     } else if (d.accion === 'actualizar') {
       const actualizado = construirPostulanteObj(d.row, d.existente.id);
       const idx = tablas.postulante.findIndex(p => p.id === d.existente.id);
       if (idx !== -1) tablas.postulante[idx] = actualizado;
       if (llamadoIdParaPostulantes) {
-        const tieneRel = tablas['llamado-postulante'].some(
-          r => r.llamado_id === llamadoIdParaPostulantes && r.postulante_id === d.existente.id
-        );
-        if (!tieneRel) {
-          tablas['llamado-postulante'].push({ llamado_id: llamadoIdParaPostulantes, postulante_id: d.existente.id });
-        }
+        relacionesPendientes.push({ llamado_id: llamadoIdParaPostulantes, postulante_id: d.existente.id });
       }
     } else if (d.accion === 'nuevo') {
       const nuevo = construirPostulanteObj(d.row, generarId('postulante'));
       tablas.postulante.push(nuevo);
       if (llamadoIdParaPostulantes) {
-        tablas['llamado-postulante'].push({ llamado_id: llamadoIdParaPostulantes, postulante_id: nuevo.id });
+        relacionesPendientes.push({ llamado_id: llamadoIdParaPostulantes, postulante_id: nuevo.id });
       }
     }
   }
@@ -658,10 +650,36 @@ async function confirmarDuplicados() {
   document.getElementById('modalCargando').classList.add('hidden');
 }
 
+// Trae la versión más reciente de llamado-postulante desde GitHub y agrega ahí las
+// relaciones nuevas (sin pisar lo que ya había, aunque la copia en memoria del navegador
+// estuviera desactualizada). Así una persona puede pertenecer a varios llamados sin que
+// una carga posterior borre las relaciones anteriores.
+async function guardarRelacionesLlamadoPostulante(nuevasRelaciones) {
+  if (nuevasRelaciones.length === 0) return;
+
+  const res = await apiFetch(`/get-table?table=llamado-postulante`);
+  const actual = await res.json();
+
+  const yaExiste = (r) => actual.some(x => x.llamado_id === r.llamado_id && x.postulante_id === r.postulante_id);
+
+  const vistos = new Set();
+  const aAgregar = [];
+  for (const r of nuevasRelaciones) {
+    const clave = `${r.llamado_id}-${r.postulante_id}`;
+    if (vistos.has(clave) || yaExiste(r)) continue;
+    vistos.add(clave);
+    aAgregar.push(r);
+  }
+
+  tablas['llamado-postulante'] = [...actual, ...aAgregar];
+  await subirTabla('llamado-postulante');
+}
+
 async function subirPostulantes() {
   registrarArchivoImportado(csvData.length);
   await subirTabla('postulante');
-  if (llamadoIdParaPostulantes) await subirTabla('llamado-postulante');
+  await guardarRelacionesLlamadoPostulante(relacionesPendientes);
+  relacionesPendientes = [];
   await subirTabla('archivosImportados');
   await actualizarStats();
 
@@ -685,10 +703,17 @@ function verPostulante(id) {
     const l = tablas.llamado.find(ll => ll.id === r.llamado_id);
     if (!l) return null;
     const emp = tablas.empresa.find(e => e.id === l.empresa_id);
-    return { ...l, empresa_nombre: emp ? emp.nombre : '-' };
+    return { ...l, empresa_nombre: emp ? emp.nombre : '-', rel: r };
   }).filter(Boolean);
 
-  const extras = Object.keys(p).filter(k => !['id', 'nombre', 'apellido', 'email', 'telefono'].includes(k));
+  const extras = Object.keys(p).filter(k => !['id', 'nombre', 'apellido', 'email', 'telefono', 'tipoDocumento', 'numeroDocumento'].includes(k));
+
+  const badgesEstado = {
+    pendiente:   '<span class="badge badge-yellow">Pendiente</span>',
+    recomendado: '<span class="badge badge-green">Recomendado</span>',
+    observado:   '<span class="badge badge-yellow">Observado</span>',
+    rechazado:   '<span class="badge badge-red">Rechazado</span>',
+  };
 
   document.getElementById('modalPostulanteTitulo').textContent = `${p.nombre} ${p.apellido}`;
   document.getElementById('modalPostulanteBody').innerHTML = `
@@ -698,15 +723,102 @@ function verPostulante(id) {
       <div class="detail-item"><dt>Teléfono</dt><dd>${p.telefono || '-'}</dd></div>
       ${extras.map(k => `<div class="detail-item"><dt>${k}</dt><dd>${p[k] || '-'}</dd></div>`).join('')}
     </div>
+
+    <h3 style="margin-top:1.5rem;margin-bottom:0.75rem;font-size:1rem;font-weight:700;">Documento</h3>
+    <div class="grid-2">
+      <div>
+        <label class="label">Tipo</label>
+        <select id="docTipo" class="input">
+          <option value="">-- Sin especificar --</option>
+          <option value="CI" ${p.tipoDocumento === 'CI' ? 'selected' : ''}>CI</option>
+          <option value="Pasaporte" ${p.tipoDocumento === 'Pasaporte' ? 'selected' : ''}>Pasaporte</option>
+          <option value="Otro" ${p.tipoDocumento === 'Otro' ? 'selected' : ''}>Otro</option>
+        </select>
+      </div>
+      <div>
+        <label class="label">Número</label>
+        <input type="text" id="docNumero" class="input" value="${p.numeroDocumento || ''}" placeholder="Número de documento">
+      </div>
+    </div>
+    <button onclick="guardarDocumento(${p.id})" class="btn btn-secondary btn-sm" style="margin-top:0.75rem;">💾 Guardar documento</button>
+
     <h3 style="margin-top:1.5rem;margin-bottom:0.75rem;font-size:1rem;font-weight:700;">Llamados asociados (${llamadosInfo.length})</h3>
     <div class="table-wrap">
       <table>
-        <thead><tr><th>ID</th><th>Nombre</th><th>Cargo</th><th>Área</th><th>Empresa</th><th>Fecha</th></tr></thead>
-        <tbody>${llamadosInfo.map(l => `<tr><td>#${l.id}</td><td>${l.nombre_llamado}</td><td>${l.cargo}</td><td>${l.area}</td><td>${l.empresa_nombre}</td><td>${l.fecha}</td></tr>`).join('')}</tbody>
+        <thead><tr><th>ID</th><th>Nombre</th><th>Cargo</th><th>Empresa</th><th>Fecha</th><th>Estado</th><th></th></tr></thead>
+        <tbody>${llamadosInfo.map(l => `
+          <tr>
+            <td>#${l.id}</td><td>${l.nombre_llamado}</td><td>${l.cargo}</td><td>${l.empresa_nombre}</td><td>${l.fecha}</td>
+            <td>${badgesEstado[l.rel.estadoEntrevista || 'pendiente']}</td>
+            <td><button class="btn btn-primary btn-sm" onclick="abrirModalResultados(${l.id}, ${p.id})">Resultados</button></td>
+          </tr>`).join('')}</tbody>
       </table>
     </div>
   `;
   document.getElementById('modalPostulante').classList.remove('hidden');
+}
+
+async function guardarDocumento(postulanteId) {
+  const tipoDocumento = document.getElementById('docTipo').value;
+  const numeroDocumento = document.getElementById('docNumero').value.trim();
+
+  const idx = tablas.postulante.findIndex(p => p.id === postulanteId);
+  if (idx === -1) return;
+  tablas.postulante[idx] = { ...tablas.postulante[idx], tipoDocumento, numeroDocumento };
+
+  await subirTabla('postulante');
+  alert('Documento guardado.');
+}
+
+// ========== RESULTADOS DE ENTREVISTA (por llamado-postulante) ==========
+let resLlamadoId = null;
+let resPostulanteId = null;
+
+function abrirModalResultados(llamadoId, postulanteId) {
+  const rel = tablas['llamado-postulante'].find(r => r.llamado_id === llamadoId && r.postulante_id === postulanteId);
+  if (!rel) return;
+
+  resLlamadoId = llamadoId;
+  resPostulanteId = postulanteId;
+
+  const l = tablas.llamado.find(x => x.id === llamadoId);
+  document.getElementById('modalResultadosTitulo').textContent = `Resultados — ${l ? l.nombre_llamado : 'Llamado #' + llamadoId}`;
+  document.getElementById('resEstado').value = rel.estadoEntrevista || 'pendiente';
+  document.getElementById('resPsicolaboral').value = rel.observacionPsicolaboral || '';
+  document.getElementById('resPrueba').value = rel.observacionPrueba || '';
+
+  document.getElementById('modalResultados').classList.remove('hidden');
+}
+
+function cerrarModalResultados() {
+  document.getElementById('modalResultados').classList.add('hidden');
+  resLlamadoId = null;
+  resPostulanteId = null;
+}
+
+async function guardarResultados() {
+  if (resLlamadoId === null || resPostulanteId === null) return;
+
+  const estadoEntrevista = document.getElementById('resEstado').value;
+  const observacionPsicolaboral = document.getElementById('resPsicolaboral').value.trim();
+  const observacionPrueba = document.getElementById('resPrueba').value.trim();
+
+  // Traer la versión más reciente antes de guardar, para no pisar cambios de otra sesión
+  const res = await apiFetch(`/get-table?table=llamado-postulante`);
+  const actual = await res.json();
+
+  const idx = actual.findIndex(r => r.llamado_id === resLlamadoId && r.postulante_id === resPostulanteId);
+  if (idx === -1) {
+    alert('No se encontró la relación llamado-postulante (¿fue eliminada?).');
+    return;
+  }
+  actual[idx] = { ...actual[idx], estadoEntrevista, observacionPsicolaboral, observacionPrueba };
+
+  tablas['llamado-postulante'] = actual;
+  await subirTabla('llamado-postulante');
+
+  cerrarModalResultados();
+  verPostulante(resPostulanteId); // refresca la tabla del modal con el estado nuevo
 }
 
 function cerrarModalPostulante() {
