@@ -4,6 +4,15 @@ App de gestión de Empresas, Llamados y Postulantes (SM Consultores), desplegada
 Los datos se guardan como archivos JSON en el repo `FABIOR1981/bd` (carpeta `smconsultores`), leídos/escritos
 por las funciones serverless a través de la API de contenidos de GitHub.
 
+## ⚠️ Antes de tocar el frontend (`index.html`)
+
+**`index.html` NO se edita directamente — se genera automáticamente a partir de `html-src/`.**
+Cualquier cambio hecho a mano en `index.html` se **pierde** en el próximo build (local o en Netlify).
+
+👉 Leer **[`html-src/README.md`](./html-src/README.md) primero**, siempre, antes de modificar cualquier
+parte de la interfaz (formularios, pestañas, modales). Ahí está explicado cómo está armado, cómo editar
+cada sección, cómo agregar una pestaña nueva, y por qué se hizo así.
+
 ## Variables de entorno (configurar en Netlify > Site settings > Environment variables)
 
 - `GITHUB_TOKEN` — token con permiso de escritura (`contents:write`) sobre el repo `FABIOR1981/bd`.
