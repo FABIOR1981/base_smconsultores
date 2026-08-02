@@ -292,6 +292,7 @@ async function guardarLlamado() {
   const fecha = document.getElementById('llamFecha').value;
   const cargo = document.getElementById('llamCargo').value.trim();
   const area = document.getElementById('llamArea').value.trim();
+  const observaciones = document.getElementById('llamObservaciones').value.trim();
 
   if (!empresaId) return alert('Selecciona una empresa.');
   if (!nombre || !fecha || !cargo || !area) return alert('Completa todos los campos.');
@@ -299,7 +300,7 @@ async function guardarLlamado() {
   document.getElementById('modalCargando').classList.remove('hidden');
 
   const id = generarId('llamado');
-  tablas.llamado.push({ id, nombre_llamado: nombre, fecha, cargo, area, empresa_id: parseInt(empresaId) });
+  tablas.llamado.push({ id, nombre_llamado: nombre, fecha, cargo, area, observaciones, empresa_id: parseInt(empresaId) });
   tablas['llamado-empresa'].push({ llamado_id: id, empresa_id: parseInt(empresaId) });
 
   await subirTabla('llamado');
@@ -309,6 +310,7 @@ async function guardarLlamado() {
   document.getElementById('llamNombre').value = '';
   document.getElementById('llamCargo').value = '';
   document.getElementById('llamArea').value = '';
+  document.getElementById('llamObservaciones').value = '';
   llenarSelectLlamados();
   renderLlamados();
   document.getElementById('modalCargando').classList.add('hidden');
@@ -331,6 +333,7 @@ function verLlamado(id) {
       <div class="detail-item"><dt>Fecha</dt><dd>${l.fecha}</dd></div>
       <div class="detail-item"><dt>Empresa</dt><dd>${emp ? emp.nombre : '-'}</dd></div>
     </div>
+    ${l.observaciones ? `<div style="margin-top:1rem;"><div class="label">Observaciones</div><div style="white-space:pre-wrap;">${l.observaciones}</div></div>` : ''}
     <h3 style="margin-top:1.5rem;margin-bottom:0.75rem;font-size:1rem;font-weight:700;">Postulantes (${postulantes.length})</h3>
     <div class="table-wrap">
       <table>
