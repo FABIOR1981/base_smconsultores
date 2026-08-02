@@ -1,0 +1,64 @@
+    <!-- ==================== POSTULANTES ==================== -->
+    <div id="tab-postulantes" class="tab-content hidden">
+      <div class="section">
+        <h2 class="section-title">📄 Cargar Postulantes desde CSV</h2>
+        <div class="grid-2">
+          <div>
+            <label class="label">Archivo CSV</label>
+            <input type="file" id="csvFile" accept=".csv" class="input" onchange="handleCSV()">
+            <div id="avisoArchivoRepetido" class="hidden warning-box" style="margin-top:1rem;">
+              <p id="avisoArchivoTexto"></p>
+              <div class="flex gap-2" style="margin-top:0.75rem;">
+                <button onclick="continuarConArchivoRepetido()" class="btn btn-warning btn-sm">Continuar igual</button>
+                <button onclick="cancelarArchivoRepetido()" class="btn btn-secondary btn-sm">Cancelar</button>
+              </div>
+            </div>
+            <div id="csvPreviewBox" class="hidden" style="margin-top:1rem;">
+              <p class="text-gray text-sm mb-2">Mapeo de columnas:</p>
+              <div class="grid-4" id="columnMap"></div>
+              <div class="flex gap-2 mt-2">
+                <input type="text" id="newFieldName" class="input" style="width:auto;min-width:180px;" placeholder="Campo extra">
+                <button onclick="addExtraField()" class="btn btn-secondary btn-sm">Agregar</button>
+              </div>
+              <div id="extraFields" class="flex flex-wrap gap-2 mt-2"></div>
+            </div>
+          </div>
+          <div>
+            <label class="label">Asociar a llamado (opcional)</label>
+            <select id="postuLlamado" class="input"><option value="">-- Sin llamado --</option></select>
+            <div id="postuLlamadoInfo" class="hidden info-box mt-2"></div>
+          </div>
+        </div>
+        <div id="csvTableWrap" class="hidden table-wrap mt-4">
+          <table><thead id="previewHead"></thead><tbody id="previewBody"></tbody></table>
+          <p class="text-xs text-gray mt-2" id="previewCount"></p>
+        </div>
+        <div class="flex justify-center mt-4">
+          <button onclick="guardarPostulantesCSV()" class="btn btn-success btn-lg">💾 Guardar Postulantes</button>
+        </div>
+      </div>
+
+      <div class="section">
+        <h2 class="section-title">👤 Postulantes registrados</h2>
+        <div class="search-bar">
+          <input type="text" id="buscarPostulante" class="input" placeholder="Buscar por nombre, apellido, email o teléfono..." oninput="filtrarPostulantes()">
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>ID</th><th>Nombre</th><th>Apellido</th><th>Email</th><th>Teléfono</th><th>Llamados</th><th></th></tr></thead>
+            <tbody id="tablaPostulantes"></tbody>
+          </table>
+        </div>
+        <div class="flex justify-center items-center gap-2 mt-2 text-sm">
+          <button onclick="cambiarPag('postulante', -1)" class="btn btn-sm btn-secondary">← Ant</button>
+          <span id="infoPagPostulante" class="text-gray font-bold">Página 1 de 1</span>
+          <button onclick="cambiarPag('postulante', 1)" class="btn btn-sm btn-secondary">Sig →</button>
+          <select id="tamPagPostulante" onchange="cambiarTamPag('postulante')" class="input" style="width:auto;padding:0.4rem;">
+            <option value="10">10</option>
+            <option value="25" selected>25</option>
+            <option value="50">50</option>
+            <option value="100">100</option>
+          </select>
+        </div>
+      </div>
+    </div>

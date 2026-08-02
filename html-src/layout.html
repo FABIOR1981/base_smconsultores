@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SM Consultores</title>
+  <link rel="stylesheet" href="./css/styles.css">
+<base target="_blank">
+</head>
+<body>
+  <!-- ==================== LOGIN ==================== -->
+  <!--INCLUDE:login.html-->
+
+  <!-- ==================== APP ==================== -->
+  <div id="appContainer" class="container hidden">
+    <div class="app-header">
+      <h1>SM Consultores</h1>
+      <p>Gestión de Empresas, Llamados y Postulantes</p>
+      <button onclick="logout()" class="btn btn-sm btn-secondary" style="position:absolute; top:1rem; right:1rem;">Salir</button>
+    </div>
+
+    <div class="tabs">
+      <button id="btn-dashboard" class="tab-btn active" onclick="switchTab('dashboard')">📊 Dashboard</button>
+      <button id="btn-empresas" class="tab-btn" onclick="switchTab('empresas')">🏢 Empresas</button>
+      <button id="btn-llamados" class="tab-btn" onclick="switchTab('llamados')">📢 Llamados</button>
+      <button id="btn-postulantes" class="tab-btn" onclick="switchTab('postulantes')">👤 Postulantes</button>
+    </div>
+
+    <!--INCLUDE:dashboard.html-->
+    <!--INCLUDE:empresas.html-->
+    <!--INCLUDE:llamados.html-->
+    <!--INCLUDE:postulantes.html-->
+  </div>
+
+  <!-- MODALES -->
+  <!--INCLUDE:modales.html-->
+
+  <script src="./js/app.js"></script>
+</body>
+</html>

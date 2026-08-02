@@ -1,10 +1,11 @@
 [build]
+  command = "node build-html.js"
   functions = "netlify/functions"
+  publish = "."
 
-# Nota: se quitó el header CORS "Access-Control-Allow-Origin: *" que estaba acá.
-# No es necesario: el frontend llama a /.netlify/functions/... del mismo sitio (mismo origen),
-# así que no hace falta CORS. Tenerlo abierto solo permitía que CUALQUIER sitio externo
-# pudiera invocar las funciones (incluso sin login, antes de agregar auth).
+# Nota: "command" corre ANTES de publicar el sitio. Junta los fragmentos de html-src/
+# en un único index.html (ver build-html.js). El comportamiento en el navegador no
+# cambia en nada: sigue siendo un solo archivo HTML servido de una, sin fetches extra.
 #
 # Variables de entorno requeridas (configurar en Netlify > Site settings > Environment variables):
 #   GITHUB_TOKEN    -> token con permiso de escritura sobre FABIOR1981/bd

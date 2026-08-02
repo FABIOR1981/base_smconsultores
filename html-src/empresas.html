@@ -1,0 +1,36 @@
+    <!-- ==================== EMPRESAS ==================== -->
+    <div id="tab-empresas" class="tab-content hidden">
+      <div class="grid-2">
+        <div class="section">
+          <h2 class="section-title">➕ Nueva Empresa</h2>
+          <label class="label">Nombre *</label>
+          <input type="text" id="empNombre" class="input" placeholder="Ej: ACME S.A.">
+          <label class="label">Rubro / Detalle</label>
+          <input type="text" id="empRubro" class="input" placeholder="Ej: Tecnología">
+          <p id="empWarning" class="hidden warning-box"></p>
+          <div style="margin-top:1.25rem;">
+            <button onclick="guardarEmpresa()" class="btn btn-success">💾 Guardar Empresa</button>
+          </div>
+        </div>
+        <div class="section">
+          <h2 class="section-title">📋 Empresas registradas</h2>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>ID</th><th>Nombre</th><th>Rubro</th><th>Llamados</th></tr></thead>
+              <tbody id="tablaEmpresas"></tbody>
+            </table>
+          </div>
+          <div class="flex justify-center items-center gap-2 mt-2 text-sm">
+            <button onclick="cambiarPag('empresa', -1)" class="btn btn-sm btn-secondary">← Ant</button>
+            <span id="infoPagEmpresa" class="text-gray font-bold">Página 1 de 1</span>
+            <button onclick="cambiarPag('empresa', 1)" class="btn btn-sm btn-secondary">Sig →</button>
+            <select id="tamPagEmpresa" onchange="cambiarTamPag('empresa')" class="input" style="width:auto;padding:0.4rem;">
+              <option value="10">10</option>
+              <option value="25" selected>25</option>
+              <option value="50">50</option>
+              <option value="100">100</option>
+            </select>
+          </div>
+        </div>
+      </div>
+    </div>
