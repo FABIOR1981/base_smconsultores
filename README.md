@@ -4,6 +4,10 @@ App de gestión de Empresas, Llamados y Postulantes (SM Consultores), desplegada
 Los datos se guardan como archivos JSON en el repo `FABIOR1981/bd` (carpeta `smconsultores`), leídos/escritos
 por las funciones serverless a través de la API de contenidos de GitHub.
 
+## Documentación
+
+El manual de usuario está en [documentacion-central](https://github.com/FABIOR1981/documentacion-central/tree/main/base_smconsultores/documentacion) ([PDF](https://github.com/FABIOR1981/documentacion-central/blob/main/base_smconsultores/documentacion/MANUAL_USUARIO.pdf)). También se puede consultar desde la bitácora de proyectos.
+
 ## ⚠️ Antes de tocar el frontend (`index.html`)
 
 **`index.html` NO se edita directamente — se genera automáticamente a partir de `html-src/`.**
